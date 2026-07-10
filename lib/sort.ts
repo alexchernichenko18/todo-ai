@@ -18,7 +18,14 @@ function activeGroupRank(task: Task, now: Date): number {
   return 2;
 }
 
-export function sortActive(tasks: Task[], now: Date = new Date()): Task[] {
+export function sortActive(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
+export function initialActiveOrder(tasks: Task[], now: Date = new Date()): Task[] {
   return [...tasks].sort((a, b) => {
     const rankA = activeGroupRank(a, now);
     const rankB = activeGroupRank(b, now);

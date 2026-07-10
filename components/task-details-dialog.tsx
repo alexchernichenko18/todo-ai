@@ -3,7 +3,9 @@
 import { Pencil, RotateCcw, Check, Trash2, Sparkles } from "lucide-react";
 import type { Task, TaskSource } from "@/types";
 import { formatDateTime, formatDeadline } from "@/lib/format";
+import { AiBadge } from "@/components/task-item";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +28,7 @@ interface TaskDetailsDialogProps {
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
   onToggleStatus: (task: Task) => void;
+  onToggleSubtask: (taskId: string, subtaskId: string) => void;
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -46,10 +49,12 @@ export function TaskDetailsDialog({
   onEdit,
   onDelete,
   onToggleStatus,
+  onToggleSubtask,
 }: TaskDetailsDialogProps) {
   if (!task) return null;
 
   const isActive = task.status === "active";
+  const doneSubtasks = task.subtasks.filter((s) => s.done).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +64,12 @@ export function TaskDetailsDialog({
         </DialogHeader>
 
         <div className="space-y-3">
+          {task.source !== "manual" ? (
+            <div>
+              <AiBadge task={task} />
+            </div>
+          ) : null}
+
           {task.description ? (
             <p className="text-sm whitespace-pre-wrap">{task.description}</p>
           ) : (
@@ -76,6 +87,42 @@ export function TaskDetailsDialog({
             <Field label="Completed" value={formatDateTime(task.completedAt)} />
             <Field label="Source" value={SOURCE_LABELS[task.source]} />
           </div>
+
+          {task.subtasks.length > 0 ? (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Subtasks</p>
+                  <span className="text-xs text-muted-foreground">
+                    {doneSubtasks}/{task.subtasks.length}
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {task.subtasks.map((sub) => (
+                    <label
+                      key={sub.id}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <Checkbox
+                        checked={sub.done}
+                        onCheckedChange={() => onToggleSubtask(task.id, sub.id)}
+                      />
+                      <span
+                        className={
+                          sub.done
+                            ? "text-muted-foreground line-through"
+                            : undefined
+                        }
+                      >
+                        {sub.title}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : null}
 
           {task.aiReason ? (
             <div className="flex gap-2 rounded-lg border bg-muted/50 p-3 text-sm">

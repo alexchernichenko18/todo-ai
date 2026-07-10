@@ -1,4 +1,5 @@
-import type { ActiveTab, PersistedState } from "@/types";
+import type { ActiveTab, PersistedState, Subtask, Task } from "@/types";
+import { initialActiveOrder } from "@/lib/sort";
 
 const STORAGE_KEY = "todo-ai:v1";
 
@@ -12,6 +13,37 @@ function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
+function normalizeSubtasks(value: unknown): Subtask[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((s) => s && typeof s.title === "string")
+    .map((s) => ({
+      id: typeof s.id === "string" ? s.id : String(s.title),
+      title: s.title,
+      done: Boolean(s.done),
+    }));
+}
+
+function normalizeTasks(rawTasks: unknown): Task[] {
+  const list = Array.isArray(rawTasks) ? (rawTasks as Task[]) : [];
+  const needsOrder = list.some((t) => typeof t.order !== "number");
+
+  const normalized = list.map((t) => ({
+    ...t,
+    subtasks: normalizeSubtasks(t.subtasks),
+    edited: typeof t.edited === "boolean" ? t.edited : false,
+    order: typeof t.order === "number" ? t.order : 0,
+  }));
+
+  if (!needsOrder) return normalized;
+
+  const active = normalized.filter((t) => t.status === "active");
+  const orderMap = new Map(
+    initialActiveOrder(active).map((t, index) => [t.id, index]),
+  );
+  return normalized.map((t) => ({ ...t, order: orderMap.get(t.id) ?? 0 }));
+}
+
 export function loadState(): PersistedState {
   if (!isBrowser()) return emptyState;
   try {
@@ -19,7 +51,7 @@ export function loadState(): PersistedState {
     if (!raw) return emptyState;
     const parsed = JSON.parse(raw) as Partial<PersistedState>;
     return {
-      tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+      tasks: normalizeTasks(parsed.tasks),
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
       activeTab: parsed.activeTab === "done" ? "done" : "active",
     };

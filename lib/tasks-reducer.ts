@@ -8,7 +8,7 @@ export interface TasksState {
 }
 
 export type TaskPatch = Partial<
-  Pick<Task, "title" | "description" | "categoryId" | "deadline">
+  Pick<Task, "title" | "description" | "categoryId" | "deadline" | "subtasks">
 >;
 
 export type TasksAction =
@@ -18,6 +18,8 @@ export type TasksAction =
   | { type: "DELETE_TASK"; id: string }
   | { type: "COMPLETE_TASK"; id: string; completedAt: string; updatedAt: string }
   | { type: "RESTORE_TASK"; id: string; updatedAt: string }
+  | { type: "REORDER_ACTIVE"; orderedIds: string[] }
+  | { type: "TOGGLE_SUBTASK"; taskId: string; subtaskId: string }
   | { type: "ADD_CATEGORY"; category: Category }
   | { type: "SET_ACTIVE_TAB"; tab: ActiveTab };
 
@@ -27,6 +29,13 @@ export const initialTasksState: TasksState = {
   activeTab: "active",
   ready: false,
 };
+
+function topActiveOrder(tasks: Task[]): number {
+  const orders = tasks
+    .filter((t) => t.status === "active")
+    .map((t) => t.order);
+  return orders.length > 0 ? Math.min(...orders) - 1 : 0;
+}
 
 export function tasksReducer(
   state: TasksState,
@@ -42,14 +51,25 @@ export function tasksReducer(
       };
 
     case "ADD_TASK":
-      return { ...state, tasks: [...state.tasks, action.task] };
+      return {
+        ...state,
+        tasks: [
+          ...state.tasks,
+          { ...action.task, order: topActiveOrder(state.tasks) },
+        ],
+      };
 
     case "UPDATE_TASK":
       return {
         ...state,
         tasks: state.tasks.map((task) =>
           task.id === action.id
-            ? { ...task, ...action.patch, updatedAt: action.updatedAt }
+            ? {
+                ...task,
+                ...action.patch,
+                updatedAt: action.updatedAt,
+                edited: true,
+              }
             : task,
         ),
       };
@@ -75,7 +95,8 @@ export function tasksReducer(
         ),
       };
 
-    case "RESTORE_TASK":
+    case "RESTORE_TASK": {
+      const order = topActiveOrder(state.tasks);
       return {
         ...state,
         tasks: state.tasks.map((task) =>
@@ -85,6 +106,37 @@ export function tasksReducer(
                 status: "active",
                 completedAt: undefined,
                 updatedAt: action.updatedAt,
+                order,
+              }
+            : task,
+        ),
+      };
+    }
+
+    case "REORDER_ACTIVE": {
+      const orderMap = new Map(action.orderedIds.map((id, index) => [id, index]));
+      return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+          orderMap.has(task.id)
+            ? { ...task, order: orderMap.get(task.id) as number }
+            : task,
+        ),
+      };
+    }
+
+    case "TOGGLE_SUBTASK":
+      return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+          task.id === action.taskId
+            ? {
+                ...task,
+                subtasks: task.subtasks.map((sub) =>
+                  sub.id === action.subtaskId
+                    ? { ...sub, done: !sub.done }
+                    : sub,
+                ),
               }
             : task,
         ),

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, ListTodo, CheckCircle2 } from "lucide-react";
-import type { ActiveTab, AiRecommendationDTO, Task, TaskSource } from "@/types";
+import type { AiRecommendationDTO, Task, TaskSource } from "@/types";
 import { useTasks } from "@/hooks/use-tasks";
+import { newId } from "@/lib/id";
 import type { TaskInput } from "@/components/tasks-provider";
 import {
   TaskFormDialog,
@@ -17,13 +18,8 @@ import { EmptyState } from "@/components/empty-state";
 import { AiPanel } from "@/components/ai-panel";
 import { AiRecommendationsDialog } from "@/components/ai-recommendations-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type FormConfig =
   | { mode: "create" }
@@ -42,6 +38,11 @@ function dtoToPrefill(dto: AiRecommendationDTO): TaskFormPrefill {
     description: dto.description,
     deadline: dto.deadline ?? undefined,
     suggestedCategoryName: dto.category ?? undefined,
+    subtasks: dto.subtasks.map((title) => ({
+      id: newId(),
+      title,
+      done: false,
+    })),
   };
 }
 
@@ -59,11 +60,21 @@ export function AppShell() {
     completeTask,
     restoreTask,
     getCategoryName,
+    reorderActive,
+    toggleSubtask,
   } = useTasks();
 
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
-  const [detailsTask, setDetailsTask] = useState<Task | null>(null);
+  const [detailsTaskId, setDetailsTaskId] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+
+  const detailsTask = detailsTaskId
+    ? tasks.find((t) => t.id === detailsTaskId) ?? null
+    : null;
+
+  function openDetails(task: Task) {
+    setDetailsTaskId(task.id);
+  }
   const [recommendations, setRecommendations] = useState<
     AiRecommendationDTO[] | null
   >(null);
@@ -176,17 +187,43 @@ export function AppShell() {
         onPromptResult={handlePromptResult}
       />
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => setActiveTab(value as ActiveTab)}
+      <div
+        role="tablist"
+        className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-medium"
       >
-        <TabsList className="w-full">
-          <TabsTrigger value="active">Active ({activeTasks.length})</TabsTrigger>
-          <TabsTrigger value="done">Done ({doneTasks.length})</TabsTrigger>
-        </TabsList>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "active"}
+          onClick={() => setActiveTab("active")}
+          className={cn(
+            "rounded-md px-3 py-1.5 transition-colors",
+            activeTab === "active"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Active ({activeTasks.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "done"}
+          onClick={() => setActiveTab("done")}
+          className={cn(
+            "rounded-md px-3 py-1.5 transition-colors",
+            activeTab === "done"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Done ({doneTasks.length})
+        </button>
+      </div>
 
-        <TabsContent value="active" className="mt-4">
-          {activeTasks.length === 0 ? (
+      <div className="min-h-[55vh]">
+        {activeTab === "active" ? (
+          activeTasks.length === 0 ? (
             <EmptyState
               icon={<ListTodo className="size-8" />}
               title="You have no active tasks yet."
@@ -203,35 +240,35 @@ export function AppShell() {
           ) : (
             <TaskList
               tasks={activeTasks}
+              sortable
+              onReorder={reorderActive}
               getCategoryName={getCategoryName}
-              onOpenDetails={setDetailsTask}
+              onOpenDetails={openDetails}
               onEdit={openEdit}
               onDelete={setTaskToDelete}
               onComplete={handleComplete}
               onRestore={handleRestore}
+              onToggleSubtask={toggleSubtask}
             />
-          )}
-        </TabsContent>
-
-        <TabsContent value="done" className="mt-4">
-          {doneTasks.length === 0 ? (
-            <EmptyState
-              icon={<CheckCircle2 className="size-8" />}
-              title="Tasks you complete will appear here."
-            />
-          ) : (
-            <TaskList
-              tasks={doneTasks}
-              getCategoryName={getCategoryName}
-              onOpenDetails={setDetailsTask}
-              onEdit={openEdit}
-              onDelete={setTaskToDelete}
-              onComplete={handleComplete}
-              onRestore={handleRestore}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+          )
+        ) : doneTasks.length === 0 ? (
+          <EmptyState
+            icon={<CheckCircle2 className="size-8" />}
+            title="Tasks you complete will appear here."
+          />
+        ) : (
+          <TaskList
+            tasks={doneTasks}
+            getCategoryName={getCategoryName}
+            onOpenDetails={openDetails}
+            onEdit={openEdit}
+            onDelete={setTaskToDelete}
+            onComplete={handleComplete}
+            onRestore={handleRestore}
+            onToggleSubtask={toggleSubtask}
+          />
+        )}
+      </div>
 
       <TaskFormDialog
         open={formConfig !== null}
@@ -255,7 +292,7 @@ export function AppShell() {
       <TaskDetailsDialog
         open={detailsTask !== null}
         onOpenChange={(open) => {
-          if (!open) setDetailsTask(null);
+          if (!open) setDetailsTaskId(null);
         }}
         task={detailsTask ?? undefined}
         categoryName={getCategoryName(detailsTask?.categoryId)}
@@ -264,6 +301,7 @@ export function AppShell() {
         onToggleStatus={(task) =>
           task.status === "active" ? handleComplete(task) : handleRestore(task)
         }
+        onToggleSubtask={toggleSubtask}
       />
 
       <DeleteConfirmDialog

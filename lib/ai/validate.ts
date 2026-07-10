@@ -22,6 +22,12 @@ export function isRecommendationDTO(
   if (!(dto.category === null || typeof dto.category === "string")) return false;
   if (!isDeadline(dto.deadline)) return false;
   if (typeof dto.reason !== "string") return false;
+  if (
+    !Array.isArray(dto.subtasks) ||
+    !dto.subtasks.every((s) => typeof s === "string")
+  ) {
+    return false;
+  }
   if (typeof dto.type !== "string" || !TYPES.has(dto.type as RecommendationType)) {
     return false;
   }

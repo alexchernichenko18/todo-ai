@@ -9,6 +9,7 @@ function dto(overrides: Partial<AiRecommendationDTO> = {}): AiRecommendationDTO 
     category: "Learning",
     deadline: "2026-08-01",
     reason: "Builds on your history",
+    subtasks: [],
     type: "history_based",
     ...overrides,
   };
@@ -31,6 +32,19 @@ describe("isRecommendationDTO", () => {
 
   it("rejects a malformed deadline", () => {
     expect(isRecommendationDTO(dto({ deadline: "01/08/2026" }))).toBe(false);
+  });
+
+  it("accepts subtasks as an array of strings", () => {
+    expect(isRecommendationDTO(dto({ subtasks: ["a", "b"] }))).toBe(true);
+  });
+
+  it("rejects subtasks that are not an array of strings", () => {
+    expect(
+      isRecommendationDTO({ ...dto(), subtasks: [1, 2] as never }),
+    ).toBe(false);
+    expect(
+      isRecommendationDTO({ ...dto(), subtasks: "nope" as never }),
+    ).toBe(false);
   });
 
   it("rejects an unknown type", () => {

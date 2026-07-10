@@ -22,7 +22,7 @@ function getModel(): string {
 const RECOMMENDATION_ITEM_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "description", "category", "deadline", "reason"],
+  required: ["title", "description", "category", "deadline", "reason", "subtasks"],
   properties: {
     title: { type: "string" },
     description: { type: "string" },
@@ -32,6 +32,12 @@ const RECOMMENDATION_ITEM_SCHEMA = {
       description: "Due date as YYYY-MM-DD, or null.",
     },
     reason: { type: "string" },
+    subtasks: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "5-10 ordered step titles if the task naturally breaks down, otherwise an empty array.",
+    },
   },
 } as const;
 
@@ -53,6 +59,7 @@ interface RawRecommendation {
   category: string | null;
   deadline: string | null;
   reason: string;
+  subtasks: string[];
 }
 
 function parseContent<T>(content: string | null): T {
@@ -71,7 +78,8 @@ export async function generateRecommendations(
     `Today's date is ${today}.`,
     "Analyze the user's active and completed tasks and suggest between 3 and 5 new tasks that are a logical next step for them.",
     "Suggestions must build on the user's actual history. Do not invent unrelated tasks.",
-    "For each suggestion set: a short title, a concise description, a category (a short label or null), a deadline (YYYY-MM-DD in the future, or null when a deadline is not useful), and a reason explaining why it fits the user's history.",
+    "For each suggestion set: a short title, a concise description, a category (a short label or null), a deadline (YYYY-MM-DD in the future, or null when a deadline is not useful), a reason explaining why it fits the user's history, and subtasks.",
+    "For subtasks: include 5-10 ordered step titles when the task naturally breaks down into steps, otherwise return an empty array.",
     "Respond only with data matching the provided JSON schema.",
   ].join(" ");
 
@@ -113,7 +121,8 @@ export async function parseIntent(text: string): Promise<AiRecommendationDTO> {
   const system = [
     "You convert a user's free-text goal into exactly one structured task.",
     `Today's date is ${today}.`,
-    "Set: a short actionable title, a concise description, a category (a short label or null), a deadline (YYYY-MM-DD, derived from any timeframe the user mentions, otherwise null), and a reason explaining how the task matches the described intent.",
+    "Set: a short actionable title, a concise description, a category (a short label or null), a deadline (YYYY-MM-DD, derived from any timeframe the user mentions, otherwise null), a reason explaining how the task matches the described intent, and subtasks.",
+    "For subtasks: include 5-10 ordered step titles when the goal naturally breaks down into steps (for example learning or preparing for something), otherwise return an empty array.",
     "Respond only with data matching the provided JSON schema.",
   ].join(" ");
 

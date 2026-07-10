@@ -14,6 +14,9 @@ function baseTask(overrides: Partial<Task> = {}): Task {
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
     source: "manual",
+    subtasks: [],
+    order: 0,
+    edited: false,
     ...overrides,
   };
 }
@@ -33,27 +36,28 @@ describe("tasksReducer", () => {
     expect(next.activeTab).toBe("done");
   });
 
-  it("ADD_TASK appends a task", () => {
-    const next = tasksReducer(stateWith([]), {
+  it("ADD_TASK places the new task on top (min order - 1)", () => {
+    const existing = baseTask({ id: "a", order: 0 });
+    const next = tasksReducer(stateWith([existing]), {
       type: "ADD_TASK",
-      task: baseTask({ id: "new" }),
+      task: baseTask({ id: "new", order: 999 }),
     });
-    expect(next.tasks.map((t) => t.id)).toEqual(["new"]);
+    const added = next.tasks.find((t) => t.id === "new");
+    expect(added?.order).toBe(-1);
   });
 
-  it("UPDATE_TASK applies the patch and updates the timestamp", () => {
+  it("UPDATE_TASK applies the patch, bumps timestamp and marks edited", () => {
     const next = tasksReducer(stateWith([baseTask()]), {
       type: "UPDATE_TASK",
       id: "t1",
-      patch: { title: "Renamed", deadline: "2026-08-01" },
+      patch: { title: "Renamed" },
       updatedAt: "2026-07-05T00:00:00.000Z",
     });
     expect(next.tasks[0].title).toBe("Renamed");
-    expect(next.tasks[0].deadline).toBe("2026-08-01");
-    expect(next.tasks[0].updatedAt).toBe("2026-07-05T00:00:00.000Z");
+    expect(next.tasks[0].edited).toBe(true);
   });
 
-  it("COMPLETE_TASK marks the task done and stamps completion", () => {
+  it("COMPLETE_TASK does not mark the task as edited", () => {
     const next = tasksReducer(stateWith([baseTask()]), {
       type: "COMPLETE_TASK",
       id: "t1",
@@ -61,21 +65,53 @@ describe("tasksReducer", () => {
       updatedAt: "2026-07-06T00:00:00.000Z",
     });
     expect(next.tasks[0].status).toBe("done");
-    expect(next.tasks[0].completedAt).toBe("2026-07-06T00:00:00.000Z");
+    expect(next.tasks[0].edited).toBe(false);
   });
 
-  it("RESTORE_TASK reactivates the task and clears completion", () => {
+  it("RESTORE_TASK reactivates, clears completion and moves to top", () => {
+    const active = baseTask({ id: "active", order: 0 });
     const done = baseTask({
+      id: "done",
       status: "done",
+      order: 5,
       completedAt: "2026-07-06T00:00:00.000Z",
     });
-    const next = tasksReducer(stateWith([done]), {
+    const next = tasksReducer(stateWith([active, done]), {
       type: "RESTORE_TASK",
-      id: "t1",
+      id: "done",
       updatedAt: "2026-07-07T00:00:00.000Z",
     });
-    expect(next.tasks[0].status).toBe("active");
-    expect(next.tasks[0].completedAt).toBeUndefined();
+    const restored = next.tasks.find((t) => t.id === "done");
+    expect(restored?.status).toBe("active");
+    expect(restored?.completedAt).toBeUndefined();
+    expect(restored?.order).toBe(-1);
+  });
+
+  it("REORDER_ACTIVE reassigns order by the given id sequence", () => {
+    const a = baseTask({ id: "a", order: 0 });
+    const b = baseTask({ id: "b", order: 1 });
+    const c = baseTask({ id: "c", order: 2 });
+    const next = tasksReducer(stateWith([a, b, c]), {
+      type: "REORDER_ACTIVE",
+      orderedIds: ["c", "a", "b"],
+    });
+    const orderOf = (id: string) =>
+      next.tasks.find((t) => t.id === id)?.order;
+    expect(orderOf("c")).toBe(0);
+    expect(orderOf("a")).toBe(1);
+    expect(orderOf("b")).toBe(2);
+  });
+
+  it("TOGGLE_SUBTASK flips the subtask done state", () => {
+    const task = baseTask({
+      subtasks: [{ id: "s1", title: "Step", done: false }],
+    });
+    const next = tasksReducer(stateWith([task]), {
+      type: "TOGGLE_SUBTASK",
+      taskId: "t1",
+      subtaskId: "s1",
+    });
+    expect(next.tasks[0].subtasks[0].done).toBe(true);
   });
 
   it("DELETE_TASK removes the task", () => {

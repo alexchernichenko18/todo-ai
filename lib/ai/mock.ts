@@ -27,6 +27,46 @@ function guessCategory(text: string): string | null {
   return null;
 }
 
+function decompose(text: string): string[] {
+  const lower = text.toLowerCase();
+  if (/\b(learn|study|master)\b/.test(lower)) {
+    return [
+      "Find quality learning resources",
+      "Cover the core concepts",
+      "Practice with small exercises",
+      "Build a small hands-on project",
+      "Review and fill the gaps",
+    ];
+  }
+  if (/\b(prepare|interview)\b/.test(lower)) {
+    return [
+      "List the topics to cover",
+      "Gather study materials",
+      "Practice a little every day",
+      "Do a mock run",
+      "Review the weak areas",
+    ];
+  }
+  if (/\b(plan|organize|organise)\b/.test(lower)) {
+    return [
+      "Define the goal clearly",
+      "List the concrete steps",
+      "Set a few milestones",
+      "Schedule time for each step",
+    ];
+  }
+  if (/\b(build|create|develop|ship)\b/.test(lower)) {
+    return [
+      "Outline the requirements",
+      "Set up the project",
+      "Implement the core parts",
+      "Test the result",
+      "Polish and finish",
+    ];
+  }
+  return [];
+}
+
 function pickCategory(snapshots: TaskSnapshot[]): string | null {
   const counts = new Map<string, number>();
   for (const snap of snapshots) {
@@ -54,7 +94,7 @@ export function generateRecommendations(
   const lastCompleted = completedTasks[completedTasks.length - 1];
   const firstActive = activeTasks[0];
 
-  const recs: AiRecommendationDTO[] = [];
+  const recs: Array<Omit<AiRecommendationDTO, "subtasks">> = [];
 
   if (lastCompleted) {
     recs.push({
@@ -111,7 +151,9 @@ export function generateRecommendations(
     type: "history_based",
   });
 
-  return recs.slice(0, 5);
+  return recs
+    .slice(0, 5)
+    .map((rec) => ({ ...rec, subtasks: decompose(rec.title) }));
 }
 
 export function parseIntent(text: string): AiRecommendationDTO {
@@ -136,6 +178,7 @@ export function parseIntent(text: string): AiRecommendationDTO {
     deadline,
     reason:
       "This task captures the intent you described and gives you a concrete starting point you can refine.",
+    subtasks: decompose(trimmed),
     type: "prompt_based",
   };
 }

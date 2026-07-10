@@ -2,6 +2,12 @@ export type TaskStatus = "active" | "done";
 
 export type TaskSource = "manual" | "ai_recommendation" | "ai_prompt";
 
+export interface Subtask {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -14,6 +20,9 @@ export interface Task {
   completedAt?: string;
   source: TaskSource;
   aiReason?: string;
+  subtasks: Subtask[];
+  order: number;
+  edited: boolean;
 }
 
 export interface Category {
@@ -43,6 +52,7 @@ export interface AiRecommendationDTO {
   category: string | null;
   deadline: string | null;
   reason: string;
+  subtasks: string[];
   type: RecommendationType;
 }
 

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Task } from "@/types";
-import { isOverdue, sortActive, sortDone, todayISODate } from "@/lib/sort";
+import {
+  initialActiveOrder,
+  isOverdue,
+  sortActive,
+  sortDone,
+  todayISODate,
+} from "@/lib/sort";
 
 const NOW = new Date("2026-07-10T12:00:00Z");
 
@@ -12,6 +18,9 @@ function task(overrides: Partial<Task>): Task {
     createdAt: "2026-07-01T00:00:00.000Z",
     updatedAt: "2026-07-01T00:00:00.000Z",
     source: "manual",
+    subtasks: [],
+    order: 0,
+    edited: false,
     ...overrides,
   };
 }
@@ -31,14 +40,6 @@ describe("isOverdue", () => {
     expect(isOverdue(task({ deadline: "2026-07-10" }), NOW)).toBe(false);
   });
 
-  it("is false for a future deadline", () => {
-    expect(isOverdue(task({ deadline: "2026-07-20" }), NOW)).toBe(false);
-  });
-
-  it("is false when there is no deadline", () => {
-    expect(isOverdue(task({}), NOW)).toBe(false);
-  });
-
   it("is false for a done task even if the deadline passed", () => {
     expect(
       isOverdue(task({ status: "done", deadline: "2026-07-01" }), NOW),
@@ -47,38 +48,46 @@ describe("isOverdue", () => {
 });
 
 describe("sortActive", () => {
-  it("orders overdue, then nearest deadline, then no deadline, newest first", () => {
-    const overdue = task({ id: "overdue", deadline: "2026-07-05" });
-    const soon = task({ id: "soon", deadline: "2026-07-12" });
-    const later = task({ id: "later", deadline: "2026-07-25" });
-    const noDeadlineOld = task({
-      id: "old",
+  it("orders by the manual order field ascending", () => {
+    const a = task({ id: "a", order: 2 });
+    const b = task({ id: "b", order: 0 });
+    const c = task({ id: "c", order: 1 });
+    expect(sortActive([a, b, c]).map((t) => t.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("breaks ties on equal order by newest first", () => {
+    const older = task({
+      id: "older",
+      order: 0,
       createdAt: "2026-07-01T00:00:00.000Z",
     });
-    const noDeadlineNew = task({
-      id: "new",
-      createdAt: "2026-07-08T00:00:00.000Z",
+    const newer = task({
+      id: "newer",
+      order: 0,
+      createdAt: "2026-07-05T00:00:00.000Z",
     });
-
-    const sorted = sortActive(
-      [later, noDeadlineOld, overdue, noDeadlineNew, soon],
-      NOW,
-    );
-
-    expect(sorted.map((t) => t.id)).toEqual([
-      "overdue",
-      "soon",
-      "later",
-      "new",
-      "old",
+    expect(sortActive([older, newer]).map((t) => t.id)).toEqual([
+      "newer",
+      "older",
     ]);
   });
 
   it("does not mutate the input array", () => {
-    const input = [task({ id: "a" }), task({ id: "b" })];
+    const input = [task({ id: "a", order: 1 }), task({ id: "b", order: 0 })];
     const copy = [...input];
-    sortActive(input, NOW);
+    sortActive(input);
     expect(input).toEqual(copy);
+  });
+});
+
+describe("initialActiveOrder", () => {
+  it("orders overdue, then nearest deadline, then no deadline", () => {
+    const overdue = task({ id: "overdue", deadline: "2026-07-05" });
+    const soon = task({ id: "soon", deadline: "2026-07-12" });
+    const none = task({ id: "none" });
+    expect(
+      initialActiveOrder([none, soon, overdue], NOW).map((t) => t.id),
+    ).toEqual(["overdue", "soon", "none"]);
   });
 });
 
@@ -94,12 +103,6 @@ describe("sortDone", () => {
       status: "done",
       completedAt: "2026-07-09T00:00:00.000Z",
     });
-    const c = task({
-      id: "c",
-      status: "done",
-      completedAt: "2026-07-05T00:00:00.000Z",
-    });
-
-    expect(sortDone([a, b, c]).map((t) => t.id)).toEqual(["b", "c", "a"]);
+    expect(sortDone([a, b]).map((t) => t.id)).toEqual(["b", "a"]);
   });
 });

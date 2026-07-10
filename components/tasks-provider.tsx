@@ -8,7 +8,7 @@ import {
   useReducer,
   type ReactNode,
 } from "react";
-import type { ActiveTab, Category, Task, TaskSource } from "@/types";
+import type { ActiveTab, Category, Subtask, Task, TaskSource } from "@/types";
 import { newId } from "@/lib/id";
 import { loadState, saveState } from "@/lib/storage";
 import { sortActive, sortDone } from "@/lib/sort";
@@ -23,6 +23,7 @@ export interface TaskInput {
   description?: string;
   categoryId?: string;
   deadline?: string;
+  subtasks?: Subtask[];
 }
 
 export interface AddTaskOptions {
@@ -45,6 +46,8 @@ export interface TasksContextValue {
   restoreTask: (id: string) => void;
   addCategory: (name: string) => Category;
   getCategoryName: (categoryId?: string) => string | undefined;
+  reorderActive: (orderedIds: string[]) => void;
+  toggleSubtask: (taskId: string, subtaskId: string) => void;
 }
 
 export const TasksContext = createContext<TasksContextValue | null>(null);
@@ -61,6 +64,7 @@ function toPatch(input: TaskInput): TaskPatch {
     description: cleanText(input.description),
     categoryId: cleanText(input.categoryId),
     deadline: cleanText(input.deadline),
+    subtasks: input.subtasks ?? [],
   };
 }
 
@@ -99,6 +103,9 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
         source: options?.source ?? "manual",
         aiReason: options?.aiReason,
+        subtasks: input.subtasks ?? [],
+        order: 0,
+        edited: false,
       };
       dispatch({ type: "ADD_TASK", task });
       return task;
@@ -142,6 +149,14 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     return category;
   }, []);
 
+  const reorderActive = useCallback((orderedIds: string[]) => {
+    dispatch({ type: "REORDER_ACTIVE", orderedIds });
+  }, []);
+
+  const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
+    dispatch({ type: "TOGGLE_SUBTASK", taskId, subtaskId });
+  }, []);
+
   const activeTasks = useMemo(
     () => sortActive(state.tasks.filter((t) => t.status === "active")),
     [state.tasks],
@@ -176,6 +191,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       restoreTask,
       addCategory,
       getCategoryName,
+      reorderActive,
+      toggleSubtask,
     }),
     [
       state.ready,
@@ -192,6 +209,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       restoreTask,
       addCategory,
       getCategoryName,
+      reorderActive,
+      toggleSubtask,
     ],
   );
 

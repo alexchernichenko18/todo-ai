@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import type { Category, Task } from "@/types";
+import type { Category, Subtask, Task } from "@/types";
 import { useTasks } from "@/hooks/use-tasks";
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/validation";
 import type { TaskInput } from "@/components/tasks-provider";
 import { CategorySelect } from "@/components/category-select";
+import { SubtaskEditor } from "@/components/subtask-editor";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,6 +33,7 @@ export interface TaskFormPrefill {
   deadline?: string;
   categoryId?: string;
   suggestedCategoryName?: string;
+  subtasks?: Subtask[];
 }
 
 interface TaskFormDialogProps {
@@ -102,6 +104,9 @@ function TaskFormBody({
   const [categoryId, setCategoryId] = useState<string | undefined>(
     resolved.categoryId,
   );
+  const [subtasks, setSubtasks] = useState<Subtask[]>(() =>
+    task ? task.subtasks : prefill?.subtasks ?? [],
+  );
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSubmit() {
@@ -110,7 +115,10 @@ function TaskFormBody({
       setError(result.error);
       return;
     }
-    onSubmit({ title, description, categoryId, deadline });
+    const cleanedSubtasks = subtasks
+      .map((s) => ({ ...s, title: s.title.trim() }))
+      .filter((s) => s.title.length > 0);
+    onSubmit({ title, description, categoryId, deadline, subtasks: cleanedSubtasks });
     onOpenChange(false);
   }
 
@@ -183,6 +191,11 @@ function TaskFormBody({
             onChange={(e) => setDeadline(e.target.value)}
           />
         </div>
+
+        <div className="space-y-1.5">
+          <Label>Subtasks</Label>
+          <SubtaskEditor value={subtasks} onChange={setSubtasks} />
+        </div>
       </div>
 
       <DialogFooter>
@@ -214,7 +227,7 @@ function TaskFormBody({
 export function TaskFormDialog({ open, onOpenChange, ...rest }: TaskFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         {open ? (
           <TaskFormBody onOpenChange={onOpenChange} {...rest} />
         ) : null}
