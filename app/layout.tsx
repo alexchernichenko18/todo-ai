@@ -4,9 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Мої задачі",
+  title: "Todo AI",
   description:
-    "Персональні задачі з AI-рекомендаціями: керуйте задачами вручну та отримуйте структуровані пропозиції від AI.",
+    "Personal task management with AI suggestions: manage tasks manually and get structured proposals from AI.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider
           attribute="class"
