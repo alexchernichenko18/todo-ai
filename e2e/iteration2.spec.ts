@@ -60,8 +60,9 @@ test("subtasks can be expanded and toggled from the card", async ({ page }) => {
 test("AI task gets an AI badge, and AI edited after editing", async ({
   page,
 }) => {
+  await page.getByRole("button", { name: "Plan a goal" }).click();
   await page
-    .getByLabel("Describe a goal")
+    .getByLabel("Your goal")
     .fill("I want to learn PostgreSQL properly");
   await page.getByRole("button", { name: "Generate task" }).click();
   await expect(

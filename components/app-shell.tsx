@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, ListTodo, CheckCircle2 } from "lucide-react";
-import type { AiRecommendationDTO, Task, TaskSource } from "@/types";
+import { Plus, ListTodo, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import type {
+  AiRecommendationDTO,
+  Task,
+  TaskSnapshot,
+  TaskSource,
+} from "@/types";
 import { useTasks } from "@/hooks/use-tasks";
 import { newId } from "@/lib/id";
+import { aiErrorMessage, requestRecommendations } from "@/lib/ai/client";
 import type { TaskInput } from "@/components/tasks-provider";
 import {
   TaskFormDialog,
@@ -15,11 +21,16 @@ import { TaskDetailsDialog } from "@/components/task-details-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { TaskList } from "@/components/task-list";
 import { EmptyState } from "@/components/empty-state";
-import { AiPanel } from "@/components/ai-panel";
-import { AiRecommendationsDialog } from "@/components/ai-recommendations-dialog";
+import { AiGoalDialog } from "@/components/ai-goal-dialog";
+import {
+  AiRecommendationsDialog,
+  type RecommendationsStatus,
+} from "@/components/ai-recommendations-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const MIN_HISTORY = 3;
 
 type FormConfig =
   | { mode: "create" }
@@ -38,12 +49,21 @@ function dtoToPrefill(dto: AiRecommendationDTO): TaskFormPrefill {
     description: dto.description,
     deadline: dto.deadline ?? undefined,
     suggestedCategoryName: dto.category ?? undefined,
-    subtasks: dto.subtasks.map((title) => ({
-      id: newId(),
-      title,
-      done: false,
-    })),
+    subtasks: dto.subtasks.map((title) => ({ id: newId(), title, done: false })),
   };
+}
+
+function toSnapshots(
+  tasks: Task[],
+  getCategoryName: (id?: string) => string | undefined,
+): TaskSnapshot[] {
+  return tasks.map((task) => ({
+    title: task.title,
+    description: task.description,
+    category: getCategoryName(task.categoryId),
+    deadline: task.deadline,
+    completedAt: task.completedAt,
+  }));
 }
 
 export function AppShell() {
@@ -68,6 +88,13 @@ export function AppShell() {
   const [detailsTaskId, setDetailsTaskId] = useState<string | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [recsOpen, setRecsOpen] = useState(false);
+  const [recStatus, setRecStatus] = useState<RecommendationsStatus>("loading");
+  const [recommendations, setRecommendations] = useState<AiRecommendationDTO[]>(
+    [],
+  );
+
   const detailsTask = detailsTaskId
     ? tasks.find((t) => t.id === detailsTaskId) ?? null
     : null;
@@ -75,9 +102,6 @@ export function AppShell() {
   function openDetails(task: Task) {
     setDetailsTaskId(task.id);
   }
-  const [recommendations, setRecommendations] = useState<
-    AiRecommendationDTO[] | null
-  >(null);
 
   function openCreate() {
     setFormConfig({ mode: "create" });
@@ -87,7 +111,33 @@ export function AppShell() {
     setFormConfig({ mode: "edit", task });
   }
 
+  async function fetchRecommendations() {
+    setRecStatus("loading");
+    try {
+      const recs = await requestRecommendations({
+        activeTasks: toSnapshots(activeTasks, getCategoryName),
+        completedTasks: toSnapshots(doneTasks, getCategoryName),
+      });
+      setRecommendations(recs);
+      setRecStatus("ready");
+    } catch (error) {
+      toast.error(aiErrorMessage(error));
+      setRecStatus("error");
+    }
+  }
+
+  function openRecommendations() {
+    setRecsOpen(true);
+    setRecommendations([]);
+    if (tasks.length < MIN_HISTORY) {
+      setRecStatus("insufficient");
+      return;
+    }
+    void fetchRecommendations();
+  }
+
   function handlePromptResult(dto: AiRecommendationDTO) {
+    setGoalOpen(false);
     setFormConfig({
       mode: "proposed",
       prefill: dtoToPrefill(dto),
@@ -97,8 +147,7 @@ export function AppShell() {
   }
 
   function selectRecommendation(rec: AiRecommendationDTO) {
-    const remaining = recommendations;
-    setRecommendations(null);
+    setRecsOpen(false);
     setFormConfig({
       mode: "proposed",
       prefill: dtoToPrefill(rec),
@@ -106,17 +155,13 @@ export function AppShell() {
       source: "ai_recommendation",
       onBack: () => {
         setFormConfig(null);
-        setRecommendations(remaining);
+        setRecsOpen(true);
       },
     });
   }
 
   function rejectRecommendation(index: number) {
-    setRecommendations((prev) => {
-      if (!prev) return prev;
-      const next = prev.filter((_, i) => i !== index);
-      return next.length > 0 ? next : null;
-    });
+    setRecommendations((prev) => prev.filter((_, i) => i !== index));
   }
 
   function handleFormSubmit(input: TaskInput) {
@@ -167,25 +212,40 @@ export function AppShell() {
 
   const hasNoTasks = tasks.length === 0;
 
+  const listHandlers = {
+    getCategoryName,
+    onOpenDetails: openDetails,
+    onEdit: openEdit,
+    onDelete: setTaskToDelete,
+    onComplete: handleComplete,
+    onRestore: handleRestore,
+    onToggleSubtask: toggleSubtask,
+  };
+
   return (
     <main className="mx-auto max-w-2xl p-4 sm:p-8">
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">My Tasks</h1>
           <p className="text-sm text-muted-foreground">
             Manage your tasks and get structured AI suggestions.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus />
-          Add Task
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={openCreate}>
+            <Plus />
+            Add Task
+          </Button>
+          <Button variant="outline" onClick={openRecommendations}>
+            <Sparkles />
+            AI recommendations
+          </Button>
+          <Button variant="outline" onClick={() => setGoalOpen(true)}>
+            <Wand2 />
+            Plan a goal
+          </Button>
+        </div>
       </header>
-
-      <AiPanel
-        onRecommendations={setRecommendations}
-        onPromptResult={handlePromptResult}
-      />
 
       <div
         role="tablist"
@@ -242,13 +302,7 @@ export function AppShell() {
               tasks={activeTasks}
               sortable
               onReorder={reorderActive}
-              getCategoryName={getCategoryName}
-              onOpenDetails={openDetails}
-              onEdit={openEdit}
-              onDelete={setTaskToDelete}
-              onComplete={handleComplete}
-              onRestore={handleRestore}
-              onToggleSubtask={toggleSubtask}
+              {...listHandlers}
             />
           )
         ) : doneTasks.length === 0 ? (
@@ -257,16 +311,7 @@ export function AppShell() {
             title="Tasks you complete will appear here."
           />
         ) : (
-          <TaskList
-            tasks={doneTasks}
-            getCategoryName={getCategoryName}
-            onOpenDetails={openDetails}
-            onEdit={openEdit}
-            onDelete={setTaskToDelete}
-            onComplete={handleComplete}
-            onRestore={handleRestore}
-            onToggleSubtask={toggleSubtask}
-          />
+          <TaskList tasks={doneTasks} {...listHandlers} />
         )}
       </div>
 
@@ -277,16 +322,12 @@ export function AppShell() {
         }}
         mode={formConfig?.mode ?? "create"}
         task={formConfig?.mode === "edit" ? formConfig.task : undefined}
-        prefill={
-          formConfig?.mode === "proposed" ? formConfig.prefill : undefined
-        }
+        prefill={formConfig?.mode === "proposed" ? formConfig.prefill : undefined}
         aiReason={
           formConfig?.mode === "proposed" ? formConfig.aiReason : undefined
         }
         onSubmit={handleFormSubmit}
-        onBack={
-          formConfig?.mode === "proposed" ? formConfig.onBack : undefined
-        }
+        onBack={formConfig?.mode === "proposed" ? formConfig.onBack : undefined}
       />
 
       <TaskDetailsDialog
@@ -313,14 +354,20 @@ export function AppShell() {
         onConfirm={confirmDelete}
       />
 
+      <AiGoalDialog
+        open={goalOpen}
+        onOpenChange={setGoalOpen}
+        onResult={handlePromptResult}
+      />
+
       <AiRecommendationsDialog
-        open={recommendations !== null}
-        onOpenChange={(open) => {
-          if (!open) setRecommendations(null);
-        }}
-        recommendations={recommendations ?? []}
+        open={recsOpen}
+        onOpenChange={setRecsOpen}
+        status={recStatus}
+        recommendations={recommendations}
         onSelect={selectRecommendation}
         onReject={rejectRecommendation}
+        onRetry={fetchRecommendations}
       />
     </main>
   );
