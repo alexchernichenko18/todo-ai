@@ -61,6 +61,18 @@ describe("sanitizeResourceUrl", () => {
     expect(sanitizeResourceUrl(null, "article")).toBeUndefined();
     expect(sanitizeResourceUrl(42, "article")).toBeUndefined();
   });
+
+  it("strips userinfo from an otherwise-allowlisted host", () => {
+    expect(
+      sanitizeResourceUrl("https://google.com@coursera.org/x", "course"),
+    ).toBe("https://coursera.org/x");
+  });
+
+  it("rejects a trailing-dot FQDN even though it resolves to the same host", () => {
+    expect(
+      sanitizeResourceUrl("https://coursera.org./x", "course"),
+    ).toBeUndefined();
+  });
 });
 
 describe("sanitizeResources", () => {

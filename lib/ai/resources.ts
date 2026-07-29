@@ -63,7 +63,9 @@ export function sanitizeResourceUrl(
   }
   if (parsed.protocol !== "https:") return undefined;
   if (!isAllowedHost(parsed.hostname)) return undefined;
-  return url;
+  parsed.username = "";
+  parsed.password = "";
+  return parsed.toString();
 }
 
 function sanitizeYear(value: unknown): number | null {
