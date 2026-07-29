@@ -43,6 +43,7 @@ test("generates history recommendations and adds one", async ({ page }) => {
 
   const cards = page.getByRole("button", { name: "View & edit" });
   await expect(cards.first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText("Recommended reading")).toBeVisible();
   await cards.first().click();
 
   await expect(
@@ -60,8 +61,11 @@ test("declines a goal that is not about learning", async ({ page }) => {
     .fill("vacuum the flat and take out the bins");
   await page.getByRole("button", { name: "Build the plan" }).click();
 
+  const goalDialog = page.getByRole("dialog");
   await expect(
-    page.getByText("This planner is for learning goals", { exact: false }),
+    goalDialog.getByText("This planner is for learning goals", {
+      exact: false,
+    }),
   ).toBeVisible({ timeout: 10000 });
   await expect(
     page.getByRole("heading", { name: "Suggested study task" }),
@@ -79,4 +83,30 @@ test("a learning goal comes back with a reading list", async ({ page }) => {
     page.getByRole("heading", { name: "Suggested study task" }),
   ).toBeVisible({ timeout: 10000 });
   await expect(page.getByText("Reading list", { exact: true })).toBeVisible();
+});
+
+test("a task's own details dialog shows its reading list and tracks read progress", async ({
+  page,
+}) => {
+  const title = "Learn SQL basics over the next month";
+  await page.getByRole("button", { name: "Plan a goal" }).click();
+  await page.getByLabel("Your learning goal").fill(title);
+  await page.getByRole("button", { name: "Build the plan" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Suggested study task" }),
+  ).toBeVisible({ timeout: 10000 });
+  await page.getByRole("button", { name: "Add to tasks" }).click();
+
+  await page.getByText(title).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: title })).toBeVisible();
+  await expect(dialog.getByText("Reading list", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/0\/\d+ read/)).toBeVisible();
+
+  await dialog
+    .getByRole("checkbox", { name: /Mark ".*" as read/ })
+    .first()
+    .check();
+
+  await expect(dialog.getByText(/1\/\d+ read/)).toBeVisible();
 });
