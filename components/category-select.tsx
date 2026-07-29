@@ -77,7 +77,7 @@ export function CategorySelect({
           <Input
             autoFocus
             value={draft}
-            placeholder="New category name"
+            placeholder="New subject name"
             onChange={(e) => {
               setDraft(e.target.value);
               if (error) setError(undefined);
@@ -98,7 +98,7 @@ export function CategorySelect({
             size="icon-sm"
             variant="ghost"
             onClick={cancelCreate}
-            aria-label="Cancel new category"
+            aria-label="Cancel new subject"
           >
             <X />
           </Button>
@@ -114,17 +114,17 @@ export function CategorySelect({
       onValueChange={(next) => handleValueChange(next as string | null)}
     >
       <SelectTrigger className="w-full">
-        <SelectValue placeholder="No category">
+        <SelectValue placeholder="No subject">
           {(current) => {
-            if (!current || current === NONE_VALUE) return "No category";
+            if (!current || current === NONE_VALUE) return "No subject";
             return (
-              categories.find((c) => c.id === current)?.name ?? "No category"
+              categories.find((c) => c.id === current)?.name ?? "No subject"
             );
           }}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value={NONE_VALUE}>No category</SelectItem>
+        <SelectItem value={NONE_VALUE}>No subject</SelectItem>
         {categories.map((category) => (
           <SelectItem key={category.id} value={category.id}>
             {category.name}
@@ -132,7 +132,7 @@ export function CategorySelect({
         ))}
         <SelectItem value={CREATE_VALUE}>
           <Plus />
-          Create new category
+          Create new subject
         </SelectItem>
       </SelectContent>
     </Select>

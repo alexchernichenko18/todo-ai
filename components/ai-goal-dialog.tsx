@@ -56,20 +56,20 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate a task from a goal</DialogTitle>
+          <DialogTitle>Plan a learning goal</DialogTitle>
           <DialogDescription>
-            Describe what you want to do and AI will turn it into a structured
-            task. You decide whether to add it.
+            Describe what you want to learn. AI will break it into steps and
+            suggest reading.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5">
-          <Label htmlFor="ai-goal">Your goal</Label>
+          <Label htmlFor="ai-goal">Your learning goal</Label>
           <Textarea
             id="ai-goal"
             value={text}
             maxLength={MAX_PROMPT_LENGTH}
-            placeholder="Describe your goal or what you want to do..."
+            placeholder="e.g. Learn React fundamentals over the next month"
             disabled={loading}
             onChange={(e) => {
               setText(e.target.value);
@@ -90,7 +90,7 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
           </Button>
           <Button onClick={generate} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-            {loading ? "Generating..." : "Generate task"}
+            {loading ? "Building..." : "Build the plan"}
           </Button>
         </DialogFooter>
       </DialogContent>

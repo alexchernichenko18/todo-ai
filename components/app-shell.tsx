@@ -192,7 +192,7 @@ export function AppShell() {
     if (!formConfig) return;
     if (formConfig.mode === "edit") {
       updateTask(formConfig.task.id, input);
-      toast.success("Task updated");
+      toast.success("Study task updated");
       return;
     }
     if (formConfig.mode === "proposed") {
@@ -211,7 +211,7 @@ export function AppShell() {
       return;
     }
     addTask(input);
-    toast.success("Task created");
+    toast.success("Study task created");
   }
 
   function handleComplete(task: Task) {
@@ -261,15 +261,18 @@ export function AppShell() {
     <main className="mx-auto max-w-2xl p-4 sm:p-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My Tasks</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            My learning plan
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Manage your tasks and get structured AI suggestions.
+            Track what you are studying and let AI suggest next steps and
+            reading.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={openCreate}>
             <Plus />
-            Add Task
+            Add study task
           </Button>
           <Button variant="outline" onClick={openRecommendations}>
             <Sparkles />
@@ -298,7 +301,7 @@ export function AppShell() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          Active ({activeTasks.length})
+          In progress ({activeTasks.length})
         </button>
         <button
           type="button"
@@ -312,7 +315,7 @@ export function AppShell() {
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          Done ({doneTasks.length})
+          Completed ({doneTasks.length})
         </button>
         <button
           type="button"

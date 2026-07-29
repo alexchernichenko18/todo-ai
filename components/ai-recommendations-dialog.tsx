@@ -35,7 +35,7 @@ interface AiRecommendationsDialogProps {
 }
 
 const NOT_ENOUGH_HISTORY_MESSAGE =
-  "Add or complete a few tasks so the system can build personalized recommendations.";
+  "Add or complete a few study tasks so we can suggest what to learn next.";
 
 const READING_HINT =
   "Books and courses for what you are studying. Checked items go with the task you add.";
@@ -158,8 +158,8 @@ export function AiRecommendationsDialog({
         <DialogHeader>
           <DialogTitle>AI recommendations</DialogTitle>
           <DialogDescription>
-            Suggestions based on your task history. Review, edit, or dismiss each
-            one.
+            Next study steps based on what you are already learning. Review,
+            edit, or dismiss each one.
           </DialogDescription>
         </DialogHeader>
 

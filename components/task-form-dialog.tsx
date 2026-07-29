@@ -50,13 +50,13 @@ interface TaskFormDialogProps {
 }
 
 const TITLES: Record<TaskFormMode, string> = {
-  create: "New task",
-  edit: "Edit task",
-  proposed: "Proposed task",
+  create: "New study task",
+  edit: "Edit study task",
+  proposed: "Suggested study task",
 };
 
 const SUBMIT_LABELS: Record<TaskFormMode, string> = {
-  create: "Create task",
+  create: "Create study task",
   edit: "Save changes",
   proposed: "Add to tasks",
 };
@@ -140,8 +140,8 @@ function TaskFormBody({
         <DialogTitle>{TITLES[mode]}</DialogTitle>
         <DialogDescription>
           {mode === "proposed"
-            ? "Review and edit the details, then add it to your tasks."
-            : "Fill in the details for your task."}
+            ? "Review the plan and the reading list, then add it to your studies."
+            : "Fill in the details for your study task."}
         </DialogDescription>
       </DialogHeader>
 
@@ -162,7 +162,7 @@ function TaskFormBody({
             id="task-title"
             value={title}
             maxLength={MAX_TITLE_LENGTH}
-            placeholder="What needs to be done?"
+            placeholder="What do you want to learn?"
             onChange={(e) => {
               setTitle(e.target.value);
               if (error) setError(undefined);
@@ -184,7 +184,7 @@ function TaskFormBody({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Category</Label>
+          <Label>Subject</Label>
           <CategorySelect
             categories={categories}
             value={categoryId}
@@ -195,7 +195,7 @@ function TaskFormBody({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="task-deadline">Deadline</Label>
+          <Label htmlFor="task-deadline">Target date</Label>
           <Input
             id="task-deadline"
             type="date"
@@ -205,7 +205,7 @@ function TaskFormBody({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Subtasks</Label>
+          <Label>Study steps</Label>
           <SubtaskEditor value={subtasks} onChange={setSubtasks} />
         </div>
 

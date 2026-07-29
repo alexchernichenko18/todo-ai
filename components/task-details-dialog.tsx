@@ -16,9 +16,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 const SOURCE_LABELS: Record<TaskSource, string> = {
-  manual: "Created manually",
+  manual: "Added manually",
   ai_recommendation: "From AI recommendation",
-  ai_prompt: "From text prompt",
+  ai_prompt: "From a learning goal",
 };
 
 interface TaskDetailsDialogProps {

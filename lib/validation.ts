@@ -30,12 +30,12 @@ export function validateTitle(value: string): ValidationResult {
 export function validateCategoryName(value: string): ValidationResult {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    return { valid: false, error: "Category name cannot be empty." };
+    return { valid: false, error: "Subject name cannot be empty." };
   }
   if (trimmed.length > MAX_CATEGORY_LENGTH) {
     return {
       valid: false,
-      error: `Category name cannot exceed ${MAX_CATEGORY_LENGTH} characters.`,
+      error: `Subject name cannot exceed ${MAX_CATEGORY_LENGTH} characters.`,
     };
   }
   return { valid: true };
