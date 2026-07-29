@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, ListTodo, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
 import type {
   AiRecommendationDTO,
+  LearningResource,
   Task,
   TaskSnapshot,
   TaskSource,
@@ -40,16 +41,21 @@ type FormConfig =
       prefill: TaskFormPrefill;
       aiReason?: string;
       source: TaskSource;
+      resourceIds: string[];
       onBack?: () => void;
     };
 
-function dtoToPrefill(dto: AiRecommendationDTO): TaskFormPrefill {
+function dtoToPrefill(
+  dto: AiRecommendationDTO,
+  resources: LearningResource[],
+): TaskFormPrefill {
   return {
     title: dto.title,
     description: dto.description,
     deadline: dto.deadline ?? undefined,
     suggestedCategoryName: dto.category ?? undefined,
     subtasks: dto.subtasks.map((title) => ({ id: newId(), title, done: false })),
+    resources,
   };
 }
 
@@ -82,6 +88,7 @@ export function AppShell() {
     getCategoryName,
     reorderActive,
     toggleSubtask,
+    toggleResourceRead,
   } = useTasks();
 
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
@@ -93,6 +100,10 @@ export function AppShell() {
   const [recStatus, setRecStatus] = useState<RecommendationsStatus>("loading");
   const [recommendations, setRecommendations] = useState<AiRecommendationDTO[]>(
     [],
+  );
+  const [recResources, setRecResources] = useState<LearningResource[]>([]);
+  const [savedResourceIds, setSavedResourceIds] = useState<Set<string>>(
+    new Set(),
   );
 
   const detailsTask = detailsTaskId
@@ -114,11 +125,13 @@ export function AppShell() {
   async function fetchRecommendations() {
     setRecStatus("loading");
     try {
-      const recs = await requestRecommendations({
+      const { recommendations: recs, resources } = await requestRecommendations({
         activeTasks: toSnapshots(activeTasks, getCategoryName),
         completedTasks: toSnapshots(doneTasks, getCategoryName),
       });
       setRecommendations(recs);
+      setRecResources(resources);
+      setSavedResourceIds(new Set());
       setRecStatus("ready");
     } catch (error) {
       toast.error(aiErrorMessage(error));
@@ -129,6 +142,7 @@ export function AppShell() {
   function openRecommendations() {
     setRecsOpen(true);
     setRecommendations([]);
+    setRecResources([]);
     if (tasks.length < MIN_HISTORY) {
       setRecStatus("insufficient");
       return;
@@ -136,23 +150,31 @@ export function AppShell() {
     void fetchRecommendations();
   }
 
-  function handlePromptResult(dto: AiRecommendationDTO) {
+  function handlePromptResult(
+    dto: AiRecommendationDTO,
+    resources: LearningResource[],
+  ) {
     setGoalOpen(false);
     setFormConfig({
       mode: "proposed",
-      prefill: dtoToPrefill(dto),
+      prefill: dtoToPrefill(dto, resources),
       aiReason: dto.reason,
       source: "ai_prompt",
+      resourceIds: [],
     });
   }
 
-  function selectRecommendation(rec: AiRecommendationDTO) {
+  function selectRecommendation(
+    rec: AiRecommendationDTO,
+    resources: LearningResource[],
+  ) {
     setRecsOpen(false);
     setFormConfig({
       mode: "proposed",
-      prefill: dtoToPrefill(rec),
+      prefill: dtoToPrefill(rec, resources),
       aiReason: rec.reason,
       source: "ai_recommendation",
+      resourceIds: resources.map((r) => r.id),
       onBack: () => {
         setFormConfig(null);
         setRecsOpen(true);
@@ -176,6 +198,13 @@ export function AppShell() {
         source: formConfig.source,
         aiReason: formConfig.aiReason,
       });
+      if (formConfig.resourceIds.length > 0) {
+        setSavedResourceIds((prev) => {
+          const next = new Set(prev);
+          for (const id of formConfig.resourceIds) next.add(id);
+          return next;
+        });
+      }
       toast.success("Task added from AI");
       return;
     }
@@ -343,6 +372,7 @@ export function AppShell() {
           task.status === "active" ? handleComplete(task) : handleRestore(task)
         }
         onToggleSubtask={toggleSubtask}
+        onToggleResourceRead={toggleResourceRead}
       />
 
       <DeleteConfirmDialog
@@ -365,6 +395,8 @@ export function AppShell() {
         onOpenChange={setRecsOpen}
         status={recStatus}
         recommendations={recommendations}
+        resources={recResources}
+        savedResourceIds={savedResourceIds}
         onSelect={selectRecommendation}
         onReject={rejectRecommendation}
         onRetry={fetchRecommendations}
