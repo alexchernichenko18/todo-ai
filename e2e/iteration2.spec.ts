@@ -1,9 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 
 async function addTask(page: Page, title: string) {
-  await page.getByRole("button", { name: "Add Task" }).click();
+  await page.getByRole("button", { name: "Add study task" }).click();
   await page.getByLabel("Title").fill(title);
-  await page.getByRole("button", { name: "Create task" }).click();
+  await page.getByRole("button", { name: "Create study task" }).click();
   await expect(page.getByText(title)).toBeVisible();
 }
 
@@ -23,13 +23,13 @@ test("new tasks appear on top of the active list", async ({ page }) => {
 });
 
 test("subtasks show progress and toggle in details", async ({ page }) => {
-  await page.getByRole("button", { name: "Add Task" }).click();
+  await page.getByRole("button", { name: "Add study task" }).click();
   await page.getByLabel("Title").fill("Ship feature");
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByPlaceholder("Subtask").nth(0).fill("Write code");
   await page.getByPlaceholder("Subtask").nth(1).fill("Write tests");
-  await page.getByRole("button", { name: "Create task" }).click();
+  await page.getByRole("button", { name: "Create study task" }).click();
 
   await expect(page.getByText("0/2")).toBeVisible();
 
@@ -42,13 +42,13 @@ test("subtasks show progress and toggle in details", async ({ page }) => {
 });
 
 test("subtasks can be expanded and toggled from the card", async ({ page }) => {
-  await page.getByRole("button", { name: "Add Task" }).click();
+  await page.getByRole("button", { name: "Add study task" }).click();
   await page.getByLabel("Title").fill("Launch feature");
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByRole("button", { name: "Add subtask" }).click();
   await page.getByPlaceholder("Subtask").nth(0).fill("Plan");
   await page.getByPlaceholder("Subtask").nth(1).fill("Execute");
-  await page.getByRole("button", { name: "Create task" }).click();
+  await page.getByRole("button", { name: "Create study task" }).click();
 
   await page.getByRole("checkbox", { name: "Plan" }).click();
 
@@ -62,11 +62,11 @@ test("AI task gets an AI badge, and AI edited after editing", async ({
 }) => {
   await page.getByRole("button", { name: "Plan a goal" }).click();
   await page
-    .getByLabel("Your goal")
+    .getByLabel("Your learning goal")
     .fill("I want to learn PostgreSQL properly");
-  await page.getByRole("button", { name: "Generate task" }).click();
+  await page.getByRole("button", { name: "Build the plan" }).click();
   await expect(
-    page.getByRole("heading", { name: "Proposed task" }),
+    page.getByRole("heading", { name: "Suggested study task" }),
   ).toBeVisible({ timeout: 10000 });
   await page.getByRole("button", { name: "Add to tasks" }).click();
 
