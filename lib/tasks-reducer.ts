@@ -8,7 +8,10 @@ export interface TasksState {
 }
 
 export type TaskPatch = Partial<
-  Pick<Task, "title" | "description" | "categoryId" | "deadline" | "subtasks">
+  Pick<
+    Task,
+    "title" | "description" | "categoryId" | "deadline" | "subtasks" | "resources"
+  >
 >;
 
 export type TasksAction =
@@ -20,6 +23,8 @@ export type TasksAction =
   | { type: "RESTORE_TASK"; id: string; updatedAt: string }
   | { type: "REORDER_ACTIVE"; orderedIds: string[] }
   | { type: "TOGGLE_SUBTASK"; taskId: string; subtaskId: string }
+  | { type: "TOGGLE_RESOURCE_READ"; taskId: string; resourceId: string }
+  | { type: "REMOVE_RESOURCE"; taskId: string; resourceId: string }
   | { type: "ADD_CATEGORY"; category: Category }
   | { type: "SET_ACTIVE_TAB"; tab: ActiveTab };
 
@@ -136,6 +141,38 @@ export function tasksReducer(
                   sub.id === action.subtaskId
                     ? { ...sub, done: !sub.done }
                     : sub,
+                ),
+              }
+            : task,
+        ),
+      };
+
+    case "TOGGLE_RESOURCE_READ":
+      return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+          task.id === action.taskId
+            ? {
+                ...task,
+                resources: task.resources.map((resource) =>
+                  resource.id === action.resourceId
+                    ? { ...resource, read: !resource.read }
+                    : resource,
+                ),
+              }
+            : task,
+        ),
+      };
+
+    case "REMOVE_RESOURCE":
+      return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+          task.id === action.taskId
+            ? {
+                ...task,
+                resources: task.resources.filter(
+                  (resource) => resource.id !== action.resourceId,
                 ),
               }
             : task,

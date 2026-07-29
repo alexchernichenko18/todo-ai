@@ -8,7 +8,14 @@ import {
   useReducer,
   type ReactNode,
 } from "react";
-import type { ActiveTab, Category, Subtask, Task, TaskSource } from "@/types";
+import type {
+  ActiveTab,
+  Category,
+  LearningResource,
+  Subtask,
+  Task,
+  TaskSource,
+} from "@/types";
 import { newId } from "@/lib/id";
 import { loadState, saveState } from "@/lib/storage";
 import { sortActive, sortDone } from "@/lib/sort";
@@ -24,6 +31,7 @@ export interface TaskInput {
   categoryId?: string;
   deadline?: string;
   subtasks?: Subtask[];
+  resources?: LearningResource[];
 }
 
 export interface AddTaskOptions {
@@ -48,6 +56,8 @@ export interface TasksContextValue {
   getCategoryName: (categoryId?: string) => string | undefined;
   reorderActive: (orderedIds: string[]) => void;
   toggleSubtask: (taskId: string, subtaskId: string) => void;
+  toggleResourceRead: (taskId: string, resourceId: string) => void;
+  removeResource: (taskId: string, resourceId: string) => void;
 }
 
 export const TasksContext = createContext<TasksContextValue | null>(null);
@@ -65,6 +75,7 @@ function toPatch(input: TaskInput): TaskPatch {
     categoryId: cleanText(input.categoryId),
     deadline: cleanText(input.deadline),
     subtasks: input.subtasks ?? [],
+    resources: input.resources ?? [],
   };
 }
 
@@ -104,6 +115,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         source: options?.source ?? "manual",
         aiReason: options?.aiReason,
         subtasks: input.subtasks ?? [],
+        resources: input.resources ?? [],
         order: 0,
         edited: false,
       };
@@ -157,6 +169,17 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "TOGGLE_SUBTASK", taskId, subtaskId });
   }, []);
 
+  const toggleResourceRead = useCallback(
+    (taskId: string, resourceId: string) => {
+      dispatch({ type: "TOGGLE_RESOURCE_READ", taskId, resourceId });
+    },
+    [],
+  );
+
+  const removeResource = useCallback((taskId: string, resourceId: string) => {
+    dispatch({ type: "REMOVE_RESOURCE", taskId, resourceId });
+  }, []);
+
   const activeTasks = useMemo(
     () => sortActive(state.tasks.filter((t) => t.status === "active")),
     [state.tasks],
@@ -193,6 +216,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       getCategoryName,
       reorderActive,
       toggleSubtask,
+      toggleResourceRead,
+      removeResource,
     }),
     [
       state.ready,
@@ -211,6 +236,8 @@ export function TasksProvider({ children }: { children: ReactNode }) {
       getCategoryName,
       reorderActive,
       toggleSubtask,
+      toggleResourceRead,
+      removeResource,
     ],
   );
 

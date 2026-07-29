@@ -1,4 +1,11 @@
-import type { ActiveTab, PersistedState, Subtask, Task } from "@/types";
+import type {
+  ActiveTab,
+  LearningResource,
+  PersistedState,
+  ResourceKind,
+  Subtask,
+  Task,
+} from "@/types";
 import { initialActiveOrder } from "@/lib/sort";
 
 const STORAGE_KEY = "todo-ai:v1";
@@ -24,6 +31,30 @@ function normalizeSubtasks(value: unknown): Subtask[] {
     }));
 }
 
+const RESOURCE_KINDS = new Set<ResourceKind>(["book", "article", "course"]);
+
+function normalizeResources(value: unknown): LearningResource[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (r) =>
+        r &&
+        typeof r.title === "string" &&
+        r.title.trim().length > 0 &&
+        RESOURCE_KINDS.has(r.kind),
+    )
+    .map((r) => ({
+      id: typeof r.id === "string" ? r.id : String(r.title),
+      kind: r.kind as ResourceKind,
+      title: r.title,
+      author: typeof r.author === "string" ? r.author : undefined,
+      year: typeof r.year === "number" ? r.year : undefined,
+      url: typeof r.url === "string" ? r.url : undefined,
+      note: typeof r.note === "string" ? r.note : "",
+      read: Boolean(r.read),
+    }));
+}
+
 function normalizeTasks(rawTasks: unknown): Task[] {
   const list = Array.isArray(rawTasks) ? (rawTasks as Task[]) : [];
   const needsOrder = list.some((t) => typeof t.order !== "number");
@@ -31,6 +62,7 @@ function normalizeTasks(rawTasks: unknown): Task[] {
   const normalized = list.map((t) => ({
     ...t,
     subtasks: normalizeSubtasks(t.subtasks),
+    resources: normalizeResources(t.resources),
     edited: typeof t.edited === "boolean" ? t.edited : false,
     order: typeof t.order === "number" ? t.order : 0,
   }));
@@ -53,7 +85,10 @@ export function loadState(): PersistedState {
     return {
       tasks: normalizeTasks(parsed.tasks),
       categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-      activeTab: parsed.activeTab === "done" ? "done" : "active",
+      activeTab:
+        parsed.activeTab === "done" || parsed.activeTab === "library"
+          ? parsed.activeTab
+          : "active",
     };
   } catch {
     return emptyState;

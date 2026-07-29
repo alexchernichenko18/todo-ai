@@ -19,6 +19,7 @@ function task(overrides: Partial<Task>): Task {
     updatedAt: "2026-07-01T00:00:00.000Z",
     source: "manual",
     subtasks: [],
+    resources: [],
     order: 0,
     edited: false,
     ...overrides,
