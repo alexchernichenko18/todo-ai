@@ -4,6 +4,7 @@ import type {
 } from "@/types";
 import { getRecommendations } from "@/lib/ai/provider";
 import { isRecommendationList } from "@/lib/ai/validate";
+import { sanitizeResources } from "@/lib/ai/resources";
 
 function isSnapshotArray(value: unknown): value is TaskSnapshot[] {
   return Array.isArray(value) && value.every((item) => {
@@ -44,6 +45,6 @@ export async function POST(request: Request) {
 
   return Response.json({
     recommendations: result.recommendations,
-    resources: result.resources,
+    resources: sanitizeResources(result.resources),
   });
 }

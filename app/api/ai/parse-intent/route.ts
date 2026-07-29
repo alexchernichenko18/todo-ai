@@ -2,6 +2,7 @@ import type { ParseIntentRequestBody } from "@/types";
 import { getParsedIntent } from "@/lib/ai/provider";
 import { isRecommendationDTO } from "@/lib/ai/validate";
 import { validatePromptInput } from "@/lib/validation";
+import { sanitizeResources } from "@/lib/ai/resources";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -33,6 +34,6 @@ export async function POST(request: Request) {
 
   return Response.json({
     recommendation: result.recommendation,
-    resources: result.resources,
+    resources: sanitizeResources(result.resources),
   });
 }

@@ -200,14 +200,20 @@ export function AppShell() {
         source: formConfig.source,
         aiReason: formConfig.aiReason,
       });
-      if (formConfig.resourceIds.length > 0) {
+      const submittedIds = new Set(
+        (input.resources ?? []).map((resource) => resource.id),
+      );
+      const savedIds = formConfig.resourceIds.filter((id) =>
+        submittedIds.has(id),
+      );
+      if (savedIds.length > 0) {
         setSavedResourceIds((prev) => {
           const next = new Set(prev);
-          for (const id of formConfig.resourceIds) next.add(id);
+          for (const id of savedIds) next.add(id);
           return next;
         });
       }
-      toast.success("Task added from AI");
+      toast.success("Study task added from AI");
       return;
     }
     addTask(input);
@@ -216,18 +222,18 @@ export function AppShell() {
 
   function handleComplete(task: Task) {
     completeTask(task.id);
-    toast.success("Task completed");
+    toast.success("Study task completed");
   }
 
   function handleRestore(task: Task) {
     restoreTask(task.id);
-    toast.success("Task restored");
+    toast.success("Study task restored");
   }
 
   function confirmDelete() {
     if (!taskToDelete) return;
     deleteTask(taskToDelete.id);
-    toast.success("Task deleted");
+    toast.success("Study task deleted");
   }
 
   if (!ready) {
