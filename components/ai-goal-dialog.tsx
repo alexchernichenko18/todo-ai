@@ -54,7 +54,7 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Plan a learning goal</DialogTitle>
           <DialogDescription>

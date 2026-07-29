@@ -293,7 +293,7 @@ export function AppShell() {
 
       <div
         role="tablist"
-        className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 text-sm font-medium"
+        className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 text-xs font-medium sm:text-sm"
       >
         <button
           type="button"
@@ -301,7 +301,7 @@ export function AppShell() {
           aria-selected={activeTab === "active"}
           onClick={() => setActiveTab("active")}
           className={cn(
-            "rounded-md px-3 py-1.5 transition-colors",
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
             activeTab === "active"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -315,7 +315,7 @@ export function AppShell() {
           aria-selected={activeTab === "done"}
           onClick={() => setActiveTab("done")}
           className={cn(
-            "rounded-md px-3 py-1.5 transition-colors",
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
             activeTab === "done"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
@@ -329,7 +329,7 @@ export function AppShell() {
           aria-selected={activeTab === "library"}
           onClick={() => setActiveTab("library")}
           className={cn(
-            "rounded-md px-3 py-1.5 transition-colors",
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
             activeTab === "library"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
