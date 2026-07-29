@@ -20,10 +20,11 @@ const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
   { category: "Business", words: ["business", "management", "marketing", "finance", "economics"] },
 ];
 
-function guessCategory(text: string): string | null {
-  const lower = text.toLowerCase();
+export function guessCategory(text: string): string | null {
   for (const { category, words } of CATEGORY_KEYWORDS) {
-    if (words.some((w) => lower.includes(w))) return category;
+    if (words.some((w) => new RegExp(`\\b${w}\\b`, "i").test(text))) {
+      return category;
+    }
   }
   return null;
 }
@@ -34,9 +35,10 @@ const LEARNING_KEYWORDS = [
   "revise", "basics", "fundamentals", "training", "lecture", "research",
 ];
 
+const LEARNING_RE = new RegExp(`\\b(${LEARNING_KEYWORDS.join("|")})`, "i");
+
 function isLearningGoal(text: string): boolean {
-  const lower = text.toLowerCase();
-  return LEARNING_KEYWORDS.some((word) => lower.includes(word));
+  return LEARNING_RE.test(text) || guessCategory(text) !== null;
 }
 
 const RESOURCES_BY_CATEGORY: Record<string, AiResourceDTO[]> = {
