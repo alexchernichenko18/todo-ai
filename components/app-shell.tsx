@@ -141,13 +141,13 @@ export function AppShell() {
 
   function openRecommendations() {
     setRecsOpen(true);
-    setRecommendations([]);
-    setRecResources([]);
     if (tasks.length < MIN_HISTORY) {
       setRecStatus("insufficient");
       return;
     }
-    void fetchRecommendations();
+    if (recStatus !== "ready" || recommendations.length === 0) {
+      void fetchRecommendations();
+    }
   }
 
   function handlePromptResult(

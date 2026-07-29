@@ -111,6 +111,8 @@ export function AiRecommendationsDialog({
   onRetry,
 }: AiRecommendationsDialogProps) {
   const [prevResources, setPrevResources] = useState(resources);
+  const [prevSavedResourceIds, setPrevSavedResourceIds] =
+    useState(savedResourceIds);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () =>
       new Set(
@@ -118,8 +120,9 @@ export function AiRecommendationsDialog({
       ),
   );
 
-  if (prevResources !== resources) {
+  if (prevResources !== resources || prevSavedResourceIds !== savedResourceIds) {
     setPrevResources(resources);
+    setPrevSavedResourceIds(savedResourceIds);
     setSelectedIds(
       new Set(
         resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
