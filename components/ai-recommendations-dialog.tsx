@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pencil, X, CalendarClock, ListChecks, RotateCcw } from "lucide-react";
 import type { AiRecommendationDTO, LearningResource } from "@/types";
 import { formatDeadline } from "@/lib/format";
@@ -110,11 +110,22 @@ export function AiRecommendationsDialog({
   onReject,
   onRetry,
 }: AiRecommendationsDialogProps) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [prevResources, setPrevResources] = useState(resources);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
+      ),
+  );
 
-  useEffect(() => {
-    setSelectedIds(new Set(resources.map((r) => r.id)));
-  }, [resources]);
+  if (prevResources !== resources) {
+    setPrevResources(resources);
+    setSelectedIds(
+      new Set(
+        resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
+      ),
+    );
+  }
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
