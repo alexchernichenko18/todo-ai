@@ -1,10 +1,12 @@
 import type {
   AiRecommendationDTO,
+  LearningResource,
   RecommendationsRequestBody,
 } from "@/types";
 import { isRecommendationDTO, isRecommendationList } from "@/lib/ai/validate";
+import { sanitizeResources, toLearningResources } from "@/lib/ai/resources";
 
-export type AiErrorCode = "network" | "invalid";
+export type AiErrorCode = "network" | "invalid" | "off_topic";
 
 export class AiError extends Error {
   code: AiErrorCode;
@@ -18,6 +20,8 @@ export class AiError extends Error {
 export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
   network: "Couldn't get a response from AI. Please try again.",
   invalid: "AI returned invalid data. Please try again.",
+  off_topic:
+    'This planner is for learning goals. Try something like "Learn SQL basics" or "Prepare for the IELTS exam".',
 };
 
 export function aiErrorMessage(error: unknown): string {
@@ -37,6 +41,7 @@ async function postJson(url: string, body: unknown): Promise<unknown> {
     throw new AiError("network");
   }
   if (!response.ok) {
+    if (response.status === 422) throw new AiError("off_topic");
     throw new AiError(response.status === 502 ? "invalid" : "network");
   }
   try {
@@ -48,24 +53,36 @@ async function postJson(url: string, body: unknown): Promise<unknown> {
 
 export async function requestRecommendations(
   body: RecommendationsRequestBody,
-): Promise<AiRecommendationDTO[]> {
+): Promise<{
+  recommendations: AiRecommendationDTO[];
+  resources: LearningResource[];
+}> {
   const data = (await postJson("/api/ai/recommendations", body)) as {
     recommendations?: unknown;
+    resources?: unknown;
   };
   if (!isRecommendationList(data.recommendations)) {
     throw new AiError("invalid");
   }
-  return data.recommendations;
+  return {
+    recommendations: data.recommendations,
+    resources: toLearningResources(sanitizeResources(data.resources)),
+  };
 }
 
-export async function requestParseIntent(
-  text: string,
-): Promise<AiRecommendationDTO> {
+export async function requestParseIntent(text: string): Promise<{
+  recommendation: AiRecommendationDTO;
+  resources: LearningResource[];
+}> {
   const data = (await postJson("/api/ai/parse-intent", { text })) as {
     recommendation?: unknown;
+    resources?: unknown;
   };
   if (!isRecommendationDTO(data.recommendation, "prompt_based")) {
     throw new AiError("invalid");
   }
-  return data.recommendation;
+  return {
+    recommendation: data.recommendation,
+    resources: toLearningResources(sanitizeResources(data.resources)),
+  };
 }

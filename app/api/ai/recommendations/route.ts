@@ -28,9 +28,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  let recommendations;
+  let result;
   try {
-    recommendations = await getRecommendations({
+    result = await getRecommendations({
       activeTasks: data.activeTasks,
       completedTasks: data.completedTasks,
     });
@@ -38,9 +38,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "upstream" }, { status: 503 });
   }
 
-  if (!isRecommendationList(recommendations)) {
+  if (!isRecommendationList(result.recommendations)) {
     return Response.json({ error: "invalid_response" }, { status: 502 });
   }
 
-  return Response.json({ recommendations });
+  return Response.json({
+    recommendations: result.recommendations,
+    resources: result.resources,
+  });
 }

@@ -16,16 +16,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  let recommendation;
+  let result;
   try {
-    recommendation = await getParsedIntent(text);
+    result = await getParsedIntent(text);
   } catch {
     return Response.json({ error: "upstream" }, { status: 503 });
   }
 
-  if (!isRecommendationDTO(recommendation, "prompt_based")) {
+  if (result.offTopic) {
+    return Response.json({ error: "off_topic" }, { status: 422 });
+  }
+
+  if (!isRecommendationDTO(result.recommendation, "prompt_based")) {
     return Response.json({ error: "invalid_response" }, { status: 502 });
   }
 
-  return Response.json({ recommendation });
+  return Response.json({
+    recommendation: result.recommendation,
+    resources: result.resources,
+  });
 }
