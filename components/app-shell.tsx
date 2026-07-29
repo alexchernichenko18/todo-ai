@@ -21,6 +21,7 @@ import {
 import { TaskDetailsDialog } from "@/components/task-details-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { TaskList } from "@/components/task-list";
+import { LibraryTab } from "@/components/library-tab";
 import { EmptyState } from "@/components/empty-state";
 import { AiGoalDialog } from "@/components/ai-goal-dialog";
 import {
@@ -89,6 +90,7 @@ export function AppShell() {
     reorderActive,
     toggleSubtask,
     toggleResourceRead,
+    removeResource,
   } = useTasks();
 
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
@@ -240,6 +242,10 @@ export function AppShell() {
   }
 
   const hasNoTasks = tasks.length === 0;
+  const resourceCount = tasks.reduce(
+    (total, task) => total + task.resources.length,
+    0,
+  );
 
   const listHandlers = {
     getCategoryName,
@@ -278,7 +284,7 @@ export function AppShell() {
 
       <div
         role="tablist"
-        className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-medium"
+        className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 text-sm font-medium"
       >
         <button
           type="button"
@@ -308,20 +314,41 @@ export function AppShell() {
         >
           Done ({doneTasks.length})
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "library"}
+          onClick={() => setActiveTab("library")}
+          className={cn(
+            "rounded-md px-3 py-1.5 transition-colors",
+            activeTab === "library"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Library ({resourceCount})
+        </button>
       </div>
 
       <div className="min-h-[55vh]">
-        {activeTab === "active" ? (
+        {activeTab === "library" ? (
+          <LibraryTab
+            tasks={tasks}
+            onToggleRead={toggleResourceRead}
+            onRemove={removeResource}
+            onOpenTask={openDetails}
+          />
+        ) : activeTab === "active" ? (
           activeTasks.length === 0 ? (
             <EmptyState
               icon={<ListTodo className="size-8" />}
-              title="You have no active tasks yet."
-              description="Create a task manually or describe your goal so AI can help shape it."
+              title="Nothing in progress yet."
+              description="Add a study task, or describe a learning goal and let AI build the plan."
               action={
                 hasNoTasks ? (
                   <Button onClick={openCreate}>
                     <Plus />
-                    Create your first task
+                    Add your first study task
                   </Button>
                 ) : undefined
               }
@@ -337,7 +364,7 @@ export function AppShell() {
         ) : doneTasks.length === 0 ? (
           <EmptyState
             icon={<CheckCircle2 className="size-8" />}
-            title="Tasks you complete will appear here."
+            title="Study tasks you finish will appear here."
           />
         ) : (
           <TaskList tasks={doneTasks} {...listHandlers} />
