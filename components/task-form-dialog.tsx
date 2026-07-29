@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import type { Category, Subtask, Task } from "@/types";
+import type { Category, LearningResource, Subtask, Task } from "@/types";
 import { useTasks } from "@/hooks/use-tasks";
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -11,6 +11,7 @@ import {
 } from "@/lib/validation";
 import type { TaskInput } from "@/components/tasks-provider";
 import { CategorySelect } from "@/components/category-select";
+import { ResourceList } from "@/components/resource-list";
 import { SubtaskEditor } from "@/components/subtask-editor";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,7 @@ export interface TaskFormPrefill {
   categoryId?: string;
   suggestedCategoryName?: string;
   subtasks?: Subtask[];
+  resources?: LearningResource[];
 }
 
 interface TaskFormDialogProps {
@@ -107,6 +109,9 @@ function TaskFormBody({
   const [subtasks, setSubtasks] = useState<Subtask[]>(() =>
     task ? task.subtasks : prefill?.subtasks ?? [],
   );
+  const [resources, setResources] = useState<LearningResource[]>(() =>
+    task ? task.resources : prefill?.resources ?? [],
+  );
   const [error, setError] = useState<string | undefined>(undefined);
 
   function handleSubmit() {
@@ -118,7 +123,14 @@ function TaskFormBody({
     const cleanedSubtasks = subtasks
       .map((s) => ({ ...s, title: s.title.trim() }))
       .filter((s) => s.title.length > 0);
-    onSubmit({ title, description, categoryId, deadline, subtasks: cleanedSubtasks });
+    onSubmit({
+      title,
+      description,
+      categoryId,
+      deadline,
+      subtasks: cleanedSubtasks,
+      resources,
+    });
     onOpenChange(false);
   }
 
@@ -196,6 +208,18 @@ function TaskFormBody({
           <Label>Subtasks</Label>
           <SubtaskEditor value={subtasks} onChange={setSubtasks} />
         </div>
+
+        {resources.length > 0 ? (
+          <div className="space-y-1.5">
+            <Label>Reading list</Label>
+            <ResourceList
+              resources={resources}
+              onRemove={(id) =>
+                setResources((prev) => prev.filter((r) => r.id !== id))
+              }
+            />
+          </div>
+        ) : null}
       </div>
 
       <DialogFooter>

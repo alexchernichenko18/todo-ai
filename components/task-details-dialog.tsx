@@ -4,6 +4,7 @@ import { Pencil, RotateCcw, Check, Trash2, Sparkles } from "lucide-react";
 import type { Task, TaskSource } from "@/types";
 import { formatDateTime, formatDeadline } from "@/lib/format";
 import { AiBadge } from "@/components/task-item";
+import { ResourceList } from "@/components/resource-list";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -29,6 +30,7 @@ interface TaskDetailsDialogProps {
   onDelete: (task: Task) => void;
   onToggleStatus: (task: Task) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onToggleResourceRead: (taskId: string, resourceId: string) => void;
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -50,6 +52,7 @@ export function TaskDetailsDialog({
   onDelete,
   onToggleStatus,
   onToggleSubtask,
+  onToggleResourceRead,
 }: TaskDetailsDialogProps) {
   if (!task) return null;
 
@@ -120,6 +123,27 @@ export function TaskDetailsDialog({
                     </label>
                   ))}
                 </div>
+              </div>
+            </>
+          ) : null}
+
+          {task.resources.length > 0 ? (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Reading list</p>
+                  <span className="text-xs text-muted-foreground">
+                    {task.resources.filter((r) => r.read).length}/
+                    {task.resources.length} read
+                  </span>
+                </div>
+                <ResourceList
+                  resources={task.resources}
+                  onToggleRead={(resourceId) =>
+                    onToggleResourceRead(task.id, resourceId)
+                  }
+                />
               </div>
             </>
           ) : null}
