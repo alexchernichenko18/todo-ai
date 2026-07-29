@@ -55,7 +55,7 @@ function SubtaskRow({
       <button
         type="button"
         className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        aria-label="Drag to reorder subtask"
+        aria-label="Drag to reorder study step"
         {...attributes}
         {...listeners}
       >
@@ -63,7 +63,7 @@ function SubtaskRow({
       </button>
       <Input
         value={subtask.title}
-        placeholder="Subtask"
+        placeholder="Study step"
         onChange={(e) => onTitleChange(e.target.value)}
       />
       <Button
@@ -71,7 +71,7 @@ function SubtaskRow({
         variant="ghost"
         size="icon-sm"
         onClick={onRemove}
-        aria-label="Remove subtask"
+        aria-label="Remove study step"
       >
         <X />
       </Button>
@@ -137,7 +137,7 @@ export function SubtaskEditor({ value, onChange }: SubtaskEditorProps) {
 
       <Button type="button" variant="outline" size="sm" onClick={add}>
         <Plus />
-        Add subtask
+        Add study step
       </Button>
     </div>
   );

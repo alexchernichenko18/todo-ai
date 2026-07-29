@@ -25,10 +25,10 @@ test("new tasks appear on top of the active list", async ({ page }) => {
 test("subtasks show progress and toggle in details", async ({ page }) => {
   await page.getByRole("button", { name: "Add study task" }).click();
   await page.getByLabel("Title").fill("Ship feature");
-  await page.getByRole("button", { name: "Add subtask" }).click();
-  await page.getByRole("button", { name: "Add subtask" }).click();
-  await page.getByPlaceholder("Subtask").nth(0).fill("Write code");
-  await page.getByPlaceholder("Subtask").nth(1).fill("Write tests");
+  await page.getByRole("button", { name: "Add study step" }).click();
+  await page.getByRole("button", { name: "Add study step" }).click();
+  await page.getByPlaceholder("Study step").nth(0).fill("Write code");
+  await page.getByPlaceholder("Study step").nth(1).fill("Write tests");
   await page.getByRole("button", { name: "Create study task" }).click();
 
   await expect(page.getByText("0/2")).toBeVisible();
@@ -44,16 +44,16 @@ test("subtasks show progress and toggle in details", async ({ page }) => {
 test("subtasks can be expanded and toggled from the card", async ({ page }) => {
   await page.getByRole("button", { name: "Add study task" }).click();
   await page.getByLabel("Title").fill("Launch feature");
-  await page.getByRole("button", { name: "Add subtask" }).click();
-  await page.getByRole("button", { name: "Add subtask" }).click();
-  await page.getByPlaceholder("Subtask").nth(0).fill("Plan");
-  await page.getByPlaceholder("Subtask").nth(1).fill("Execute");
+  await page.getByRole("button", { name: "Add study step" }).click();
+  await page.getByRole("button", { name: "Add study step" }).click();
+  await page.getByPlaceholder("Study step").nth(0).fill("Plan");
+  await page.getByPlaceholder("Study step").nth(1).fill("Execute");
   await page.getByRole("button", { name: "Create study task" }).click();
 
   await page.getByRole("checkbox", { name: "Plan" }).click();
 
   await expect(
-    page.getByRole("button", { name: "Toggle subtasks" }),
+    page.getByRole("button", { name: "Toggle study steps" }),
   ).toContainText("1/2");
 });
 

@@ -83,8 +83,8 @@ export function TaskDetailsDialog({
 
           <div className="space-y-2">
             <Field label="Status" value={isActive ? "Active" : "Done"} />
-            <Field label="Category" value={categoryName} />
-            <Field label="Deadline" value={formatDeadline(task.deadline)} />
+            <Field label="Subject" value={categoryName} />
+            <Field label="Target date" value={formatDeadline(task.deadline)} />
             <Field label="Created" value={formatDateTime(task.createdAt)} />
             <Field label="Updated" value={formatDateTime(task.updatedAt)} />
             <Field label="Completed" value={formatDateTime(task.completedAt)} />
@@ -96,7 +96,7 @@ export function TaskDetailsDialog({
               <Separator />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Subtasks</p>
+                  <p className="text-sm font-medium">Study steps</p>
                   <span className="text-xs text-muted-foreground">
                     {doneSubtasks}/{task.subtasks.length}
                   </span>
