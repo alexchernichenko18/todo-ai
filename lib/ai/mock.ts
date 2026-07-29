@@ -30,15 +30,19 @@ export function guessCategory(text: string): string | null {
 }
 
 const LEARNING_KEYWORDS = [
-  "learn", "study", "master", "course", "exam", "read", "practice", "practise",
-  "prepare", "understand", "tutorial", "skill", "language", "certification",
+  "learn", "study", "master", "course", "exam", "practice", "practise",
+  "understand", "tutorial", "skill", "language", "certification",
   "revise", "basics", "fundamentals", "training", "lecture", "research",
 ];
 
 const LEARNING_RE = new RegExp(`\\b(${LEARNING_KEYWORDS.join("|")})`, "i");
+const PREPARE_RE = /\bprepare\s+(for|to)\b/i;
+const CHORE_RE = /\b(buy|clean|vacuum|cook|call|pay|fix|order|book a)\b/i;
 
 function isLearningGoal(text: string): boolean {
-  return LEARNING_RE.test(text) || guessCategory(text) !== null;
+  if (LEARNING_RE.test(text) || PREPARE_RE.test(text)) return true;
+  if (CHORE_RE.test(text)) return false;
+  return guessCategory(text) !== null;
 }
 
 const RESOURCES_BY_CATEGORY: Record<string, AiResourceDTO[]> = {

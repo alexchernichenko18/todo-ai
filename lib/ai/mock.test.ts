@@ -6,6 +6,9 @@ describe("parseIntent off-topic detection", () => {
     "Buy bread and milk",
     "Call the plumber, already overdue",
     "vacuum the flat and take out the bins",
+    "Prepare dinner for the guests tonight",
+    "Buy a new laptop for programming",
+    "Read the news every morning",
   ])("treats %s as off-topic", (text) => {
     expect(parseIntent(text).offTopic).toBe(true);
   });
@@ -21,6 +24,6 @@ describe("parseIntent off-topic detection", () => {
 
 describe("guessCategory", () => {
   it("does not misroute 'Build a Next.js app' to Design", () => {
-    expect(guessCategory("Build a Next.js app")).not.toBe("Design");
+    expect(guessCategory("Build a Next.js app")).toBeNull();
   });
 });
