@@ -120,7 +120,7 @@ export function AiRecommendationsDialog({
       ),
   );
 
-  if (prevResources !== resources || prevSavedResourceIds !== savedResourceIds) {
+  if (prevResources !== resources) {
     setPrevResources(resources);
     setPrevSavedResourceIds(savedResourceIds);
     setSelectedIds(
@@ -128,6 +128,13 @@ export function AiRecommendationsDialog({
         resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
       ),
     );
+  } else if (prevSavedResourceIds !== savedResourceIds) {
+    setPrevSavedResourceIds(savedResourceIds);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of savedResourceIds) next.delete(id);
+      return next;
+    });
   }
 
   function toggleSelected(id: string) {
