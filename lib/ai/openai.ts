@@ -1,8 +1,5 @@
 import OpenAI from "openai";
-import type {
-  AiRecommendationDTO,
-  RecommendationsRequestBody,
-} from "@/types";
+import type { AiRecommendationDTO, RecommendationsRequestBody } from "@/types";
 import { todayISODate } from "@/lib/sort";
 import { isRecommendationDTO } from "@/lib/ai/validate";
 
@@ -22,7 +19,14 @@ function getModel(): string {
 const RECOMMENDATION_ITEM_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "description", "category", "deadline", "reason", "subtasks"],
+  required: [
+    "title",
+    "description",
+    "category",
+    "deadline",
+    "reason",
+    "subtasks",
+  ],
   properties: {
     title: { type: "string" },
     description: { type: "string" },
