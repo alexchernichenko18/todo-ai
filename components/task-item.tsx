@@ -129,7 +129,7 @@ export function TaskItem({
                 onClick={() => setExpanded((v) => !v)}
                 className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-muted hover:text-foreground"
                 aria-expanded={expanded}
-                aria-label="Toggle subtasks"
+                aria-label="Toggle study steps"
               >
                 <ListChecks className="size-3" />
                 {doneSubtasks}/{task.subtasks.length}

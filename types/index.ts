@@ -8,6 +8,19 @@ export interface Subtask {
   done: boolean;
 }
 
+export type ResourceKind = "book" | "article" | "course";
+
+export interface LearningResource {
+  id: string;
+  kind: ResourceKind;
+  title: string;
+  author?: string;
+  year?: number;
+  url?: string;
+  note: string;
+  read: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -21,6 +34,7 @@ export interface Task {
   source: TaskSource;
   aiReason?: string;
   subtasks: Subtask[];
+  resources: LearningResource[];
   order: number;
   edited: boolean;
 }
@@ -56,12 +70,23 @@ export interface AiRecommendationDTO {
   type: RecommendationType;
 }
 
+export interface AiResourceDTO {
+  kind: ResourceKind;
+  title: string;
+  author: string | null;
+  year: number | null;
+  url: string | null;
+  note: string;
+}
+
 export interface AiRecommendationsResponse {
   recommendations: AiRecommendationDTO[];
+  resources: AiResourceDTO[];
 }
 
 export interface AiParseResponse {
   recommendation: AiRecommendationDTO;
+  resources: AiResourceDTO[];
 }
 
 export interface TaskSnapshot {
@@ -81,7 +106,7 @@ export interface ParseIntentRequestBody {
   text: string;
 }
 
-export type ActiveTab = "active" | "done";
+export type ActiveTab = "active" | "done" | "library";
 
 export interface PersistedState {
   tasks: Task[];

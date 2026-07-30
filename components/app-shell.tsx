@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, ListTodo, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
 import type {
   AiRecommendationDTO,
+  LearningResource,
   Task,
   TaskSnapshot,
   TaskSource,
@@ -20,6 +21,7 @@ import {
 import { TaskDetailsDialog } from "@/components/task-details-dialog";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { TaskList } from "@/components/task-list";
+import { LibraryTab } from "@/components/library-tab";
 import { EmptyState } from "@/components/empty-state";
 import { AiGoalDialog } from "@/components/ai-goal-dialog";
 import {
@@ -40,16 +42,21 @@ type FormConfig =
       prefill: TaskFormPrefill;
       aiReason?: string;
       source: TaskSource;
+      resourceIds: string[];
       onBack?: () => void;
     };
 
-function dtoToPrefill(dto: AiRecommendationDTO): TaskFormPrefill {
+function dtoToPrefill(
+  dto: AiRecommendationDTO,
+  resources: LearningResource[],
+): TaskFormPrefill {
   return {
     title: dto.title,
     description: dto.description,
     deadline: dto.deadline ?? undefined,
     suggestedCategoryName: dto.category ?? undefined,
     subtasks: dto.subtasks.map((title) => ({ id: newId(), title, done: false })),
+    resources,
   };
 }
 
@@ -82,6 +89,8 @@ export function AppShell() {
     getCategoryName,
     reorderActive,
     toggleSubtask,
+    toggleResourceRead,
+    removeResource,
   } = useTasks();
 
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
@@ -93,6 +102,10 @@ export function AppShell() {
   const [recStatus, setRecStatus] = useState<RecommendationsStatus>("loading");
   const [recommendations, setRecommendations] = useState<AiRecommendationDTO[]>(
     [],
+  );
+  const [recResources, setRecResources] = useState<LearningResource[]>([]);
+  const [savedResourceIds, setSavedResourceIds] = useState<Set<string>>(
+    new Set(),
   );
 
   const detailsTask = detailsTaskId
@@ -114,11 +127,13 @@ export function AppShell() {
   async function fetchRecommendations() {
     setRecStatus("loading");
     try {
-      const recs = await requestRecommendations({
+      const { recommendations: recs, resources } = await requestRecommendations({
         activeTasks: toSnapshots(activeTasks, getCategoryName),
         completedTasks: toSnapshots(doneTasks, getCategoryName),
       });
       setRecommendations(recs);
+      setRecResources(resources);
+      setSavedResourceIds(new Set());
       setRecStatus("ready");
     } catch (error) {
       toast.error(aiErrorMessage(error));
@@ -128,31 +143,40 @@ export function AppShell() {
 
   function openRecommendations() {
     setRecsOpen(true);
-    setRecommendations([]);
     if (tasks.length < MIN_HISTORY) {
       setRecStatus("insufficient");
       return;
     }
-    void fetchRecommendations();
+    if (recStatus !== "ready" || recommendations.length === 0) {
+      void fetchRecommendations();
+    }
   }
 
-  function handlePromptResult(dto: AiRecommendationDTO) {
+  function handlePromptResult(
+    dto: AiRecommendationDTO,
+    resources: LearningResource[],
+  ) {
     setGoalOpen(false);
     setFormConfig({
       mode: "proposed",
-      prefill: dtoToPrefill(dto),
+      prefill: dtoToPrefill(dto, resources),
       aiReason: dto.reason,
       source: "ai_prompt",
+      resourceIds: [],
     });
   }
 
-  function selectRecommendation(rec: AiRecommendationDTO) {
+  function selectRecommendation(
+    rec: AiRecommendationDTO,
+    resources: LearningResource[],
+  ) {
     setRecsOpen(false);
     setFormConfig({
       mode: "proposed",
-      prefill: dtoToPrefill(rec),
+      prefill: dtoToPrefill(rec, resources),
       aiReason: rec.reason,
       source: "ai_recommendation",
+      resourceIds: resources.map((r) => r.id),
       onBack: () => {
         setFormConfig(null);
         setRecsOpen(true);
@@ -168,7 +192,7 @@ export function AppShell() {
     if (!formConfig) return;
     if (formConfig.mode === "edit") {
       updateTask(formConfig.task.id, input);
-      toast.success("Task updated");
+      toast.success("Study task updated");
       return;
     }
     if (formConfig.mode === "proposed") {
@@ -176,27 +200,40 @@ export function AppShell() {
         source: formConfig.source,
         aiReason: formConfig.aiReason,
       });
-      toast.success("Task added from AI");
+      const submittedIds = new Set(
+        (input.resources ?? []).map((resource) => resource.id),
+      );
+      const savedIds = formConfig.resourceIds.filter((id) =>
+        submittedIds.has(id),
+      );
+      if (savedIds.length > 0) {
+        setSavedResourceIds((prev) => {
+          const next = new Set(prev);
+          for (const id of savedIds) next.add(id);
+          return next;
+        });
+      }
+      toast.success("Study task added from AI");
       return;
     }
     addTask(input);
-    toast.success("Task created");
+    toast.success("Study task created");
   }
 
   function handleComplete(task: Task) {
     completeTask(task.id);
-    toast.success("Task completed");
+    toast.success("Study task completed");
   }
 
   function handleRestore(task: Task) {
     restoreTask(task.id);
-    toast.success("Task restored");
+    toast.success("Study task restored");
   }
 
   function confirmDelete() {
     if (!taskToDelete) return;
     deleteTask(taskToDelete.id);
-    toast.success("Task deleted");
+    toast.success("Study task deleted");
   }
 
   if (!ready) {
@@ -211,6 +248,10 @@ export function AppShell() {
   }
 
   const hasNoTasks = tasks.length === 0;
+  const resourceCount = tasks.reduce(
+    (total, task) => total + task.resources.length,
+    0,
+  );
 
   const listHandlers = {
     getCategoryName,
@@ -226,15 +267,18 @@ export function AppShell() {
     <main className="mx-auto max-w-2xl p-4 sm:p-8">
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My Tasks</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            My learning plan
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Manage your tasks and get structured AI suggestions.
+            Track what you are studying and let AI suggest next steps and
+            reading.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button onClick={openCreate}>
             <Plus />
-            Add Task
+            Add study task
           </Button>
           <Button variant="outline" onClick={openRecommendations}>
             <Sparkles />
@@ -249,7 +293,7 @@ export function AppShell() {
 
       <div
         role="tablist"
-        className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-medium"
+        className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-muted p-1 text-xs font-medium sm:text-sm"
       >
         <button
           type="button"
@@ -257,13 +301,13 @@ export function AppShell() {
           aria-selected={activeTab === "active"}
           onClick={() => setActiveTab("active")}
           className={cn(
-            "rounded-md px-3 py-1.5 transition-colors",
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
             activeTab === "active"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          Active ({activeTasks.length})
+          In progress ({activeTasks.length})
         </button>
         <button
           type="button"
@@ -271,28 +315,49 @@ export function AppShell() {
           aria-selected={activeTab === "done"}
           onClick={() => setActiveTab("done")}
           className={cn(
-            "rounded-md px-3 py-1.5 transition-colors",
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
             activeTab === "done"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          Done ({doneTasks.length})
+          Completed ({doneTasks.length})
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "library"}
+          onClick={() => setActiveTab("library")}
+          className={cn(
+            "truncate rounded-md px-2 py-1.5 transition-colors sm:px-3",
+            activeTab === "library"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Library ({resourceCount})
         </button>
       </div>
 
       <div className="min-h-[55vh]">
-        {activeTab === "active" ? (
+        {activeTab === "library" ? (
+          <LibraryTab
+            tasks={tasks}
+            onToggleRead={toggleResourceRead}
+            onRemove={removeResource}
+            onOpenTask={openDetails}
+          />
+        ) : activeTab === "active" ? (
           activeTasks.length === 0 ? (
             <EmptyState
               icon={<ListTodo className="size-8" />}
-              title="You have no active tasks yet."
-              description="Create a task manually or describe your goal so AI can help shape it."
+              title="Nothing in progress yet."
+              description="Add a study task, or describe a learning goal and let AI build the plan."
               action={
                 hasNoTasks ? (
                   <Button onClick={openCreate}>
                     <Plus />
-                    Create your first task
+                    Add your first study task
                   </Button>
                 ) : undefined
               }
@@ -308,7 +373,7 @@ export function AppShell() {
         ) : doneTasks.length === 0 ? (
           <EmptyState
             icon={<CheckCircle2 className="size-8" />}
-            title="Tasks you complete will appear here."
+            title="Study tasks you finish will appear here."
           />
         ) : (
           <TaskList tasks={doneTasks} {...listHandlers} />
@@ -343,6 +408,7 @@ export function AppShell() {
           task.status === "active" ? handleComplete(task) : handleRestore(task)
         }
         onToggleSubtask={toggleSubtask}
+        onToggleResourceRead={toggleResourceRead}
       />
 
       <DeleteConfirmDialog
@@ -365,6 +431,8 @@ export function AppShell() {
         onOpenChange={setRecsOpen}
         status={recStatus}
         recommendations={recommendations}
+        resources={recResources}
+        savedResourceIds={savedResourceIds}
         onSelect={selectRecommendation}
         onReject={rejectRecommendation}
         onRetry={fetchRecommendations}

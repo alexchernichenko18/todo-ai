@@ -4,6 +4,7 @@ import { Pencil, RotateCcw, Check, Trash2, Sparkles } from "lucide-react";
 import type { Task, TaskSource } from "@/types";
 import { formatDateTime, formatDeadline } from "@/lib/format";
 import { AiBadge } from "@/components/task-item";
+import { ResourceList } from "@/components/resource-list";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,9 +16,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 const SOURCE_LABELS: Record<TaskSource, string> = {
-  manual: "Created manually",
+  manual: "Added manually",
   ai_recommendation: "From AI recommendation",
-  ai_prompt: "From text prompt",
+  ai_prompt: "From a learning goal",
 };
 
 interface TaskDetailsDialogProps {
@@ -29,6 +30,7 @@ interface TaskDetailsDialogProps {
   onDelete: (task: Task) => void;
   onToggleStatus: (task: Task) => void;
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
+  onToggleResourceRead: (taskId: string, resourceId: string) => void;
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -50,6 +52,7 @@ export function TaskDetailsDialog({
   onDelete,
   onToggleStatus,
   onToggleSubtask,
+  onToggleResourceRead,
 }: TaskDetailsDialogProps) {
   if (!task) return null;
 
@@ -58,7 +61,7 @@ export function TaskDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="pr-6 break-words">{task.title}</DialogTitle>
         </DialogHeader>
@@ -80,8 +83,8 @@ export function TaskDetailsDialog({
 
           <div className="space-y-2">
             <Field label="Status" value={isActive ? "Active" : "Done"} />
-            <Field label="Category" value={categoryName} />
-            <Field label="Deadline" value={formatDeadline(task.deadline)} />
+            <Field label="Subject" value={categoryName} />
+            <Field label="Target date" value={formatDeadline(task.deadline)} />
             <Field label="Created" value={formatDateTime(task.createdAt)} />
             <Field label="Updated" value={formatDateTime(task.updatedAt)} />
             <Field label="Completed" value={formatDateTime(task.completedAt)} />
@@ -93,7 +96,7 @@ export function TaskDetailsDialog({
               <Separator />
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">Subtasks</p>
+                  <p className="text-sm font-medium">Study steps</p>
                   <span className="text-xs text-muted-foreground">
                     {doneSubtasks}/{task.subtasks.length}
                   </span>
@@ -120,6 +123,27 @@ export function TaskDetailsDialog({
                     </label>
                   ))}
                 </div>
+              </div>
+            </>
+          ) : null}
+
+          {task.resources.length > 0 ? (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Reading list</p>
+                  <span className="text-xs text-muted-foreground">
+                    {task.resources.filter((r) => r.read).length}/
+                    {task.resources.length} read
+                  </span>
+                </div>
+                <ResourceList
+                  resources={task.resources}
+                  onToggleRead={(resourceId) =>
+                    onToggleResourceRead(task.id, resourceId)
+                  }
+                />
               </div>
             </>
           ) : null}

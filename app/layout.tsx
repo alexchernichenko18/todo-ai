@@ -4,9 +4,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "Todo AI",
+  title: "StudyPath — AI learning planner",
   description:
-    "Personal task management with AI suggestions: manage tasks manually and get structured proposals from AI.",
+    "Plan what you learn: turn study goals into steps and get AI-suggested reading.",
 };
 
 export default function RootLayout({

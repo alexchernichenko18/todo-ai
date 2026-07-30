@@ -1,5 +1,6 @@
 import type {
   AiRecommendationDTO,
+  AiResourceDTO,
   RecommendationsRequestBody,
 } from "@/types";
 import { generateRecommendations as mockRecs, parseIntent as mockParse } from "@/lib/ai/mock";
@@ -20,7 +21,10 @@ function hasOpenAIKey(): boolean {
 
 export async function getRecommendations(
   body: RecommendationsRequestBody,
-): Promise<AiRecommendationDTO[]> {
+): Promise<{
+  recommendations: AiRecommendationDTO[];
+  resources: AiResourceDTO[];
+}> {
   if (hasOpenAIKey()) {
     return openaiRecs(body);
   }
@@ -28,9 +32,11 @@ export async function getRecommendations(
   return mockRecs(body);
 }
 
-export async function getParsedIntent(
-  text: string,
-): Promise<AiRecommendationDTO> {
+export async function getParsedIntent(text: string): Promise<{
+  offTopic: boolean;
+  recommendation: AiRecommendationDTO;
+  resources: AiResourceDTO[];
+}> {
   if (hasOpenAIKey()) {
     return openaiParse(text);
   }

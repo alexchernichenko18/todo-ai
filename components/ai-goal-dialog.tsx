@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Wand2 } from "lucide-react";
-import type { AiRecommendationDTO } from "@/types";
-import { aiErrorMessage, requestParseIntent } from "@/lib/ai/client";
+import type { AiRecommendationDTO, LearningResource } from "@/types";
+import { AiError, aiErrorMessage, requestParseIntent } from "@/lib/ai/client";
 import { MAX_PROMPT_LENGTH, validatePromptInput } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface AiGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onResult: (dto: AiRecommendationDTO) => void;
+  onResult: (dto: AiRecommendationDTO, resources: LearningResource[]) => void;
 }
 
 export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps) {
@@ -38,11 +38,15 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
     setError(undefined);
     setLoading(true);
     try {
-      const dto = await requestParseIntent(text);
-      onResult(dto);
+      const { recommendation, resources } = await requestParseIntent(text);
+      onResult(recommendation, resources);
       setText("");
     } catch (err) {
-      toast.error(aiErrorMessage(err));
+      if (err instanceof AiError && err.code === "off_topic") {
+        setError(aiErrorMessage(err));
+      } else {
+        toast.error(aiErrorMessage(err));
+      }
     } finally {
       setLoading(false);
     }
@@ -50,22 +54,22 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Generate a task from a goal</DialogTitle>
+          <DialogTitle>Plan a learning goal</DialogTitle>
           <DialogDescription>
-            Describe what you want to do and AI will turn it into a structured
-            task. You decide whether to add it.
+            Describe what you want to learn. AI will break it into steps and
+            suggest reading.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5">
-          <Label htmlFor="ai-goal">Your goal</Label>
+          <Label htmlFor="ai-goal">Your learning goal</Label>
           <Textarea
             id="ai-goal"
             value={text}
             maxLength={MAX_PROMPT_LENGTH}
-            placeholder="Describe your goal or what you want to do..."
+            placeholder="e.g. Learn React fundamentals over the next month"
             disabled={loading}
             onChange={(e) => {
               setText(e.target.value);
@@ -86,7 +90,7 @@ export function AiGoalDialog({ open, onOpenChange, onResult }: AiGoalDialogProps
           </Button>
           <Button onClick={generate} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <Wand2 />}
-            {loading ? "Generating..." : "Generate task"}
+            {loading ? "Building..." : "Build the plan"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Pencil, X, CalendarClock, ListChecks, RotateCcw } from "lucide-react";
-import type { AiRecommendationDTO } from "@/types";
+import type { AiRecommendationDTO, LearningResource } from "@/types";
 import { formatDeadline } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResourceList } from "@/components/resource-list";
 
 export type RecommendationsStatus =
   | "loading"
@@ -25,13 +27,18 @@ interface AiRecommendationsDialogProps {
   onOpenChange: (open: boolean) => void;
   status: RecommendationsStatus;
   recommendations: AiRecommendationDTO[];
-  onSelect: (rec: AiRecommendationDTO) => void;
+  resources: LearningResource[];
+  savedResourceIds: Set<string>;
+  onSelect: (rec: AiRecommendationDTO, resources: LearningResource[]) => void;
   onReject: (index: number) => void;
   onRetry: () => void;
 }
 
 const NOT_ENOUGH_HISTORY_MESSAGE =
-  "Add or complete a few tasks so the system can build personalized recommendations.";
+  "Add or complete a few study tasks so we can suggest what to learn next.";
+
+const READING_HINT =
+  "Books and courses for what you are studying. Checked items go with the task you add.";
 
 function RecommendationCard({
   rec,
@@ -97,18 +104,62 @@ export function AiRecommendationsDialog({
   onOpenChange,
   status,
   recommendations,
+  resources,
+  savedResourceIds,
   onSelect,
   onReject,
   onRetry,
 }: AiRecommendationsDialogProps) {
+  const [prevResources, setPrevResources] = useState(resources);
+  const [prevSavedResourceIds, setPrevSavedResourceIds] =
+    useState(savedResourceIds);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
+      ),
+  );
+
+  if (prevResources !== resources) {
+    setPrevResources(resources);
+    setPrevSavedResourceIds(savedResourceIds);
+    setSelectedIds(
+      new Set(
+        resources.filter((r) => !savedResourceIds.has(r.id)).map((r) => r.id),
+      ),
+    );
+  } else if (prevSavedResourceIds !== savedResourceIds) {
+    setPrevSavedResourceIds(savedResourceIds);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of savedResourceIds) next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectedResources(): LearningResource[] {
+    return resources.filter(
+      (r) => selectedIds.has(r.id) && !savedResourceIds.has(r.id),
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>AI recommendations</DialogTitle>
           <DialogDescription>
-            Suggestions based on your task history. Review, edit, or dismiss each
-            one.
+            Next study steps based on what you are already learning. Review,
+            edit, or dismiss each one.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,12 +206,27 @@ export function AiRecommendationsDialog({
                 <RecommendationCard
                   key={`${rec.title}-${index}`}
                   rec={rec}
-                  onSelect={() => onSelect(rec)}
+                  onSelect={() => onSelect(rec, selectedResources())}
                   onReject={() => onReject(index)}
                 />
               ))}
             </div>
           )
+        ) : null}
+
+        {status === "ready" && resources.length > 0 ? (
+          <div className="space-y-2 border-t pt-3">
+            <div className="space-y-0.5">
+              <p className="text-sm font-medium">Recommended reading</p>
+              <p className="text-xs text-muted-foreground">{READING_HINT}</p>
+            </div>
+            <ResourceList
+              resources={resources}
+              selectedIds={selectedIds}
+              savedIds={savedResourceIds}
+              onToggleSelect={toggleSelected}
+            />
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

@@ -15,6 +15,7 @@ function baseTask(overrides: Partial<Task> = {}): Task {
     updatedAt: "2026-07-01T00:00:00.000Z",
     source: "manual",
     subtasks: [],
+    resources: [],
     order: 0,
     edited: false,
     ...overrides,
@@ -141,5 +142,57 @@ describe("tasksReducer", () => {
       tab: "done",
     });
     expect(next.activeTab).toBe("done");
+  });
+
+  it("TOGGLE_RESOURCE_READ flips read without touching updatedAt or edited", () => {
+    const task = baseTask({
+      id: "t1",
+      resources: [
+        { id: "r1", kind: "book", title: "SICP", note: "Foundations.", read: false },
+        { id: "r2", kind: "course", title: "CS50", note: "Broad intro.", read: false },
+      ],
+    });
+    const next = tasksReducer(stateWith([task]), {
+      type: "TOGGLE_RESOURCE_READ",
+      taskId: "t1",
+      resourceId: "r1",
+    });
+    const updated = next.tasks[0];
+    expect(updated.resources[0].read).toBe(true);
+    expect(updated.resources[1].read).toBe(false);
+    expect(updated.updatedAt).toBe(task.updatedAt);
+    expect(updated.edited).toBe(false);
+  });
+
+  it("REMOVE_RESOURCE drops only the targeted resource", () => {
+    const task = baseTask({
+      id: "t1",
+      resources: [
+        { id: "r1", kind: "book", title: "SICP", note: "Foundations.", read: false },
+        { id: "r2", kind: "course", title: "CS50", note: "Broad intro.", read: false },
+      ],
+    });
+    const next = tasksReducer(stateWith([task]), {
+      type: "REMOVE_RESOURCE",
+      taskId: "t1",
+      resourceId: "r1",
+    });
+    expect(next.tasks[0].resources).toHaveLength(1);
+    expect(next.tasks[0].resources[0].id).toBe("r2");
+  });
+
+  it("resource actions ignore unknown task ids", () => {
+    const task = baseTask({
+      id: "t1",
+      resources: [
+        { id: "r1", kind: "book", title: "SICP", note: "Foundations.", read: false },
+      ],
+    });
+    const next = tasksReducer(stateWith([task]), {
+      type: "REMOVE_RESOURCE",
+      taskId: "nope",
+      resourceId: "r1",
+    });
+    expect(next.tasks[0].resources).toHaveLength(1);
   });
 });
