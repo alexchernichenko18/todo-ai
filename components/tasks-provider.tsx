@@ -18,7 +18,6 @@ import type {
   TaskSource,
 } from "@/types";
 import { newId } from "@/lib/id";
-import { demoSeed } from "@/lib/demo-seed";
 import { readState, saveState } from "@/lib/storage";
 import { sortActive, sortDone } from "@/lib/sort";
 import {
@@ -86,9 +85,6 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const skipNextSave = useRef(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("demo")) {
-      saveState(demoSeed);
-    }
     const { state: stored, unreadable } = readState();
     skipNextSave.current = unreadable;
     dispatch({ type: "HYDRATE", payload: stored });
