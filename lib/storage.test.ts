@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PersistedState } from "@/types";
-import { emptyState, loadState, saveState } from "@/lib/storage";
+import { emptyState, loadState, readState, saveState } from "@/lib/storage";
 
 const STORAGE_KEY = "todo-ai:v1";
 
@@ -176,6 +176,35 @@ describe("loadState", () => {
     expect(state.tasks[0].resources).toHaveLength(1);
     expect(state.tasks[0].resources[0].read).toBe(true);
     expect(state.tasks[0].resources[0].title).toBe("Finished Course");
+  });
+});
+
+describe("readState", () => {
+  it("reports readable storage as not unreadable", () => {
+    setRaw({ tasks: [], categories: [], activeTab: "done" });
+    expect(readState().unreadable).toBe(false);
+  });
+
+  it("reports missing storage as not unreadable", () => {
+    expect(readState().unreadable).toBe(false);
+  });
+
+  it("flags unparseable storage and still yields the empty state", () => {
+    localStorage.setItem(STORAGE_KEY, "{broken");
+    const result = readState();
+    expect(result.unreadable).toBe(true);
+    expect(result.state).toEqual(emptyState);
+  });
+
+  it("flags storage whose tasks entry is not traversable", () => {
+    setRaw({ tasks: [null], categories: [], activeTab: "active" });
+    expect(readState().unreadable).toBe(true);
+  });
+
+  it("does not erase the unparseable value it read", () => {
+    localStorage.setItem(STORAGE_KEY, "{broken");
+    readState();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe("{broken");
   });
 });
 

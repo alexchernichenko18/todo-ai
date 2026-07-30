@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   type ReactNode,
 } from "react";
 import type {
@@ -17,7 +18,8 @@ import type {
   TaskSource,
 } from "@/types";
 import { newId } from "@/lib/id";
-import { loadState, saveState } from "@/lib/storage";
+import { demoSeed } from "@/lib/demo-seed";
+import { readState, saveState } from "@/lib/storage";
 import { sortActive, sortDone } from "@/lib/sort";
 import {
   initialTasksState,
@@ -81,13 +83,23 @@ function toPatch(input: TaskInput): TaskPatch {
 
 export function TasksProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(tasksReducer, initialTasksState);
+  const skipNextSave = useRef(false);
 
   useEffect(() => {
-    dispatch({ type: "HYDRATE", payload: loadState() });
+    if (new URLSearchParams(window.location.search).has("demo")) {
+      saveState(demoSeed);
+    }
+    const { state: stored, unreadable } = readState();
+    skipNextSave.current = unreadable;
+    dispatch({ type: "HYDRATE", payload: stored });
   }, []);
 
   useEffect(() => {
     if (!state.ready) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
     saveState({
       tasks: state.tasks,
       categories: state.categories,

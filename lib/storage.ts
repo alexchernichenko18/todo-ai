@@ -10,6 +10,11 @@ import { initialActiveOrder } from "@/lib/sort";
 
 const STORAGE_KEY = "todo-ai:v1";
 
+export interface LoadResult {
+  state: PersistedState;
+  unreadable: boolean;
+}
+
 export const emptyState: PersistedState = {
   tasks: [],
   categories: [],
@@ -76,23 +81,30 @@ function normalizeTasks(rawTasks: unknown): Task[] {
   return normalized.map((t) => ({ ...t, order: orderMap.get(t.id) ?? 0 }));
 }
 
-export function loadState(): PersistedState {
-  if (!isBrowser()) return emptyState;
+export function readState(): LoadResult {
+  if (!isBrowser()) return { state: emptyState, unreadable: false };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return emptyState;
+    if (!raw) return { state: emptyState, unreadable: false };
     const parsed = JSON.parse(raw) as Partial<PersistedState>;
     return {
-      tasks: normalizeTasks(parsed.tasks),
-      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
-      activeTab:
-        parsed.activeTab === "done" || parsed.activeTab === "library"
-          ? parsed.activeTab
-          : "active",
+      state: {
+        tasks: normalizeTasks(parsed.tasks),
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        activeTab:
+          parsed.activeTab === "done" || parsed.activeTab === "library"
+            ? parsed.activeTab
+            : "active",
+      },
+      unreadable: false,
     };
   } catch {
-    return emptyState;
+    return { state: emptyState, unreadable: true };
   }
+}
+
+export function loadState(): PersistedState {
+  return readState().state;
 }
 
 export function saveState(state: PersistedState): void {
