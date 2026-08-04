@@ -53,7 +53,7 @@ const RECOMMENDATION_ITEM_SCHEMA = {
 const RESOURCE_ITEM_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["kind", "title", "author", "year", "url", "note"],
+  required: ["kind", "title", "author", "year", "url", "note", "takeaways"],
   properties: {
     kind: { type: "string", enum: ["book", "article", "course"] },
     title: { type: "string" },
@@ -68,6 +68,24 @@ const RESOURCE_ITEM_SCHEMA = {
       type: "string",
       description: "One sentence on what this resource gives the learner.",
     },
+    takeaways: {
+      type: "object",
+      additionalProperties: false,
+      required: ["points", "fit"],
+      properties: {
+        points: {
+          type: "array",
+          description:
+            "4-6 substantive takeaways from the resource itself: the claims, methods or ideas a reader walks away with. Not a description of the resource.",
+          items: { type: "string" },
+        },
+        fit: {
+          type: "string",
+          description:
+            "One sentence naming who should spend time on this and who should skip it.",
+        },
+      },
+    },
   },
 } as const;
 
@@ -77,6 +95,8 @@ const RESOURCES_GUIDANCE = [
   "Courses and articles may follow, but books must come first.",
   "Never invent a URL. Set url to null unless you are certain the exact address exists and is stable. Always set url to null for books.",
   "Each resource needs a note: one sentence on what it gives the learner for this specific topic.",
+  "Each resource also needs takeaways: 4-6 concrete points a reader takes away from the material itself, not a restatement of the blurb.",
+  "Takeaways also need a fit sentence: who should spend time on this resource and who should skip it.",
 ].join(" ");
 
 const RECOMMENDATIONS_SCHEMA = {
