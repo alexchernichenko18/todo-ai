@@ -49,7 +49,9 @@ describe("mock resource takeaways", () => {
 
     expect(resources.length).toBeGreaterThan(0);
     for (const resource of resources) {
-      expect(resource.takeaways).not.toBeNull();
+      expect(resource.takeaways).toBeTruthy();
+      expect(resource.takeaways!.points.length).toBeGreaterThanOrEqual(2);
+      expect(resource.takeaways!.fit.length).toBeGreaterThan(0);
     }
   });
 
