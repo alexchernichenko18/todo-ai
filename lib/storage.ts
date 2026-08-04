@@ -7,6 +7,7 @@ import type {
   Task,
 } from "@/types";
 import { initialActiveOrder } from "@/lib/sort";
+import { sanitizeTakeaways } from "@/lib/ai/resources";
 
 const STORAGE_KEY = "todo-ai:v1";
 
@@ -56,6 +57,7 @@ function normalizeResources(value: unknown): LearningResource[] {
       year: typeof r.year === "number" ? r.year : undefined,
       url: typeof r.url === "string" ? r.url : undefined,
       note: typeof r.note === "string" ? r.note : "",
+      takeaways: sanitizeTakeaways(r.takeaways) ?? undefined,
       read: Boolean(r.read),
     }));
 }

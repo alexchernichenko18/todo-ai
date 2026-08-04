@@ -219,3 +219,72 @@ describe("saveState", () => {
     expect(loadState()).toEqual(state);
   });
 });
+
+describe("resource takeaways", () => {
+  function storedTaskWithResource(resource: unknown): void {
+    setRaw({
+      tasks: [
+        {
+          id: "t1",
+          title: "Learn SQL",
+          status: "active",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          source: "ai_prompt",
+          subtasks: [],
+          resources: [resource],
+          order: 0,
+          edited: false,
+        },
+      ],
+      categories: [],
+      activeTab: "active",
+    });
+  }
+
+  it("round-trips takeaways", () => {
+    storedTaskWithResource({
+      id: "r1",
+      kind: "book",
+      title: "Make It Stick",
+      note: "What the research says.",
+      read: false,
+      takeaways: {
+        points: ["Retrieval beats rereading", "Spacing beats cramming"],
+        fit: "Good for anyone studying seriously.",
+      },
+    });
+
+    expect(loadState().tasks[0].resources[0].takeaways).toEqual({
+      points: ["Retrieval beats rereading", "Spacing beats cramming"],
+      fit: "Good for anyone studying seriously.",
+    });
+  });
+
+  it("loads a resource saved before takeaways existed", () => {
+    storedTaskWithResource({
+      id: "r1",
+      kind: "book",
+      title: "The Pragmatic Programmer",
+      note: "Day-to-day habits.",
+      read: true,
+    });
+
+    const resource = loadState().tasks[0].resources[0];
+    expect(resource.takeaways).toBeUndefined();
+    expect(resource.title).toBe("The Pragmatic Programmer");
+  });
+
+  it("drops malformed takeaways instead of failing the load", () => {
+    storedTaskWithResource({
+      id: "r1",
+      kind: "book",
+      title: "Broken Book",
+      note: "A note.",
+      read: false,
+      takeaways: { points: "not an array", fit: 42 },
+    });
+
+    expect(loadState().tasks[0].resources[0].takeaways).toBeUndefined();
+  });
+});
