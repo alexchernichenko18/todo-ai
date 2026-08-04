@@ -51,3 +51,33 @@ test("removing a resource from the Library empties it", async ({ page }) => {
 
   await expect(page.getByText("Your reading list is empty.")).toBeVisible();
 });
+
+test("a reading list entry opens its takeaways", async ({ page }) => {
+  await addLearningTaskWithReading(page);
+
+  await page.getByRole("tab", { name: /Library \(/ }).click();
+
+  await page.getByRole("button", { name: /Key takeaways for ".*"/ }).first().click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("Key takeaways")).toBeVisible();
+  await expect(dialog.getByText("Good fit if")).toBeVisible();
+  await expect(dialog.getByRole("listitem")).not.toHaveCount(0);
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+});
+
+test("takeaways open on top of the task details dialog", async ({ page }) => {
+  await addLearningTaskWithReading(page);
+
+  await page.getByText("Learn SQL basics over the next month").first().click();
+  await expect(page.getByText("Reading list")).toBeVisible();
+
+  await page.getByRole("button", { name: /Key takeaways for ".*"/ }).first().click();
+  await expect(page.getByText("Good fit if")).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Good fit if")).toBeHidden();
+  await expect(page.getByText("Reading list")).toBeVisible();
+});

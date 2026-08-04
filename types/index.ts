@@ -10,6 +10,11 @@ export interface Subtask {
 
 export type ResourceKind = "book" | "article" | "course";
 
+export interface ResourceTakeaways {
+  points: string[];
+  fit: string;
+}
+
 export interface LearningResource {
   id: string;
   kind: ResourceKind;
@@ -18,6 +23,7 @@ export interface LearningResource {
   year?: number;
   url?: string;
   note: string;
+  takeaways?: ResourceTakeaways;
   read: boolean;
 }
 
@@ -77,6 +83,7 @@ export interface AiResourceDTO {
   year: number | null;
   url: string | null;
   note: string;
+  takeaways: ResourceTakeaways | null;
 }
 
 export interface AiRecommendationsResponse {

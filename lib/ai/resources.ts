@@ -1,7 +1,16 @@
-import type { AiResourceDTO, LearningResource, ResourceKind } from "@/types";
+import type {
+  AiResourceDTO,
+  LearningResource,
+  ResourceKind,
+  ResourceTakeaways,
+} from "@/types";
 import { newId } from "@/lib/id";
 
 export const MAX_RESOURCES = 5;
+
+export const MAX_TAKEAWAY_POINTS = 6;
+
+const MIN_TAKEAWAY_POINTS = 2;
 
 const MIN_YEAR = 1900;
 
@@ -80,6 +89,26 @@ function sanitizeText(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+export function sanitizeTakeaways(raw: unknown): ResourceTakeaways | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const candidate = raw as Record<string, unknown>;
+
+  if (!Array.isArray(candidate.points)) return null;
+  const points = Array.from(
+    new Set(
+      candidate.points
+        .map((point) => sanitizeText(point))
+        .filter((point): point is string => point !== null),
+    ),
+  ).slice(0, MAX_TAKEAWAY_POINTS);
+  if (points.length < MIN_TAKEAWAY_POINTS) return null;
+
+  const fit = sanitizeText(candidate.fit);
+  if (fit === null) return null;
+
+  return { points, fit };
+}
+
 export function sanitizeResources(raw: unknown): AiResourceDTO[] {
   if (!Array.isArray(raw)) return [];
 
@@ -107,6 +136,7 @@ export function sanitizeResources(raw: unknown): AiResourceDTO[] {
       year: sanitizeYear(candidate.year),
       url: sanitizeResourceUrl(candidate.url, kind) ?? null,
       note: sanitizeText(candidate.note) ?? "",
+      takeaways: sanitizeTakeaways(candidate.takeaways),
     });
   }
 
@@ -126,6 +156,7 @@ export function toLearningResources(
     year: dto.year ?? undefined,
     url: dto.url ?? undefined,
     note: dto.note,
+    takeaways: dto.takeaways ?? undefined,
     read: false,
   }));
 }

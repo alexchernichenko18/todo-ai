@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { AiResourceDTO } from "@/types";
 import {
   MAX_RESOURCES,
+  MAX_TAKEAWAY_POINTS,
   sanitizeResourceUrl,
   sanitizeResources,
+  sanitizeTakeaways,
   toLearningResources,
 } from "@/lib/ai/resources";
 
@@ -15,6 +17,7 @@ function dto(overrides: Partial<AiResourceDTO> = {}): AiResourceDTO {
     year: null,
     url: null,
     note: "Useful.",
+    takeaways: null,
     ...overrides,
   };
 }
@@ -153,5 +156,157 @@ describe("toLearningResources", () => {
     expect(result.author).toBeUndefined();
     expect(result.year).toBeUndefined();
     expect(result.url).toBeUndefined();
+  });
+});
+
+describe("sanitizeTakeaways", () => {
+  it("keeps valid points and fit", () => {
+    expect(
+      sanitizeTakeaways({
+        points: ["Naming carries the readability weight", "Functions do one thing"],
+        fit: "Good for developers shipping production code.",
+      }),
+    ).toEqual({
+      points: ["Naming carries the readability weight", "Functions do one thing"],
+      fit: "Good for developers shipping production code.",
+    });
+  });
+
+  it("trims points and drops the empty ones", () => {
+    expect(
+      sanitizeTakeaways({
+        points: ["  Spaced repetition works  ", "", "   ", "Testing beats rereading"],
+        fit: "Useful for anyone studying.",
+      }),
+    ).toEqual({
+      points: ["Spaced repetition works", "Testing beats rereading"],
+      fit: "Useful for anyone studying.",
+    });
+  });
+
+  it("returns null when fewer than two points survive", () => {
+    expect(
+      sanitizeTakeaways({ points: ["Only one", "  "], fit: "Anyone." }),
+    ).toBeNull();
+  });
+
+  it("returns null when fit is empty", () => {
+    expect(
+      sanitizeTakeaways({ points: ["First point", "Second point"], fit: "   " }),
+    ).toBeNull();
+  });
+
+  it("caps the points at MAX_TAKEAWAY_POINTS", () => {
+    const result = sanitizeTakeaways({
+      points: ["a", "b", "c", "d", "e", "f", "g", "h"],
+      fit: "Anyone.",
+    });
+    expect(result?.points).toHaveLength(MAX_TAKEAWAY_POINTS);
+    expect(result?.points[0]).toBe("a");
+  });
+
+  it("returns null when the points repeat a single idea", () => {
+    expect(
+      sanitizeTakeaways({ points: ["Same point", "Same point"], fit: "Anyone." }),
+    ).toBeNull();
+  });
+
+  it("treats points that differ only by surrounding whitespace as one", () => {
+    expect(
+      sanitizeTakeaways({ points: ["Same point", "  Same point  "], fit: "Anyone." }),
+    ).toBeNull();
+  });
+
+  it("drops duplicate points but keeps the distinct ones in order", () => {
+    expect(
+      sanitizeTakeaways({
+        points: ["Spacing beats cramming", "Spacing beats cramming", "Retrieval beats rereading"],
+        fit: "Useful for anyone studying.",
+      }),
+    ).toEqual({
+      points: ["Spacing beats cramming", "Retrieval beats rereading"],
+      fit: "Useful for anyone studying.",
+    });
+  });
+
+  it("caps the deduplicated points at MAX_TAKEAWAY_POINTS", () => {
+    const result = sanitizeTakeaways({
+      points: ["a", "a", "b", "c", "d", "e", "f", "g"],
+      fit: "Anyone.",
+    });
+    expect(result?.points).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
+  it("returns null for a non-object", () => {
+    expect(sanitizeTakeaways(null)).toBeNull();
+    expect(sanitizeTakeaways("takeaways")).toBeNull();
+  });
+
+  it("returns null when points is not an array", () => {
+    expect(sanitizeTakeaways({ points: "First. Second.", fit: "Anyone." })).toBeNull();
+  });
+});
+
+describe("sanitizeResources with takeaways", () => {
+  it("keeps sanitized takeaways on the resource", () => {
+    const [resource] = sanitizeResources([
+      {
+        kind: "book",
+        title: "Make It Stick",
+        author: "Brown",
+        year: 2014,
+        url: null,
+        note: "What the research says.",
+        takeaways: {
+          points: ["Retrieval beats rereading", "Spacing beats cramming"],
+          fit: "Good for anyone studying seriously.",
+        },
+      },
+    ]);
+    expect(resource.takeaways).toEqual({
+      points: ["Retrieval beats rereading", "Spacing beats cramming"],
+      fit: "Good for anyone studying seriously.",
+    });
+  });
+
+  it("nulls out takeaways the model returned malformed", () => {
+    const [resource] = sanitizeResources([
+      {
+        kind: "book",
+        title: "Some Book",
+        author: null,
+        year: null,
+        url: null,
+        note: "A note.",
+        takeaways: { points: ["Only one point"], fit: "Anyone." },
+      },
+    ]);
+    expect(resource.takeaways).toBeNull();
+  });
+
+  it("nulls out takeaways the model omitted entirely", () => {
+    const [resource] = sanitizeResources([
+      { kind: "book", title: "Bare Book", author: null, year: null, url: null, note: "A note." },
+    ]);
+    expect(resource.takeaways).toBeNull();
+  });
+});
+
+describe("toLearningResources with takeaways", () => {
+  it("carries takeaways over to the domain resource", () => {
+    const [resource] = toLearningResources([
+      dto({
+        takeaways: { points: ["First point", "Second point"], fit: "Anyone curious." },
+      }),
+    ]);
+    expect(resource.takeaways).toEqual({
+      points: ["First point", "Second point"],
+      fit: "Anyone curious.",
+    });
+  });
+
+  it("turns a null DTO takeaways into undefined", () => {
+    const [resource] = toLearningResources([dto({ takeaways: null })]);
+    expect(resource.takeaways).toBeUndefined();
   });
 });
