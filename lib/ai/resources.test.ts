@@ -205,6 +205,38 @@ describe("sanitizeTakeaways", () => {
     expect(result?.points[0]).toBe("a");
   });
 
+  it("returns null when the points repeat a single idea", () => {
+    expect(
+      sanitizeTakeaways({ points: ["Same point", "Same point"], fit: "Anyone." }),
+    ).toBeNull();
+  });
+
+  it("treats points that differ only by surrounding whitespace as one", () => {
+    expect(
+      sanitizeTakeaways({ points: ["Same point", "  Same point  "], fit: "Anyone." }),
+    ).toBeNull();
+  });
+
+  it("drops duplicate points but keeps the distinct ones in order", () => {
+    expect(
+      sanitizeTakeaways({
+        points: ["Spacing beats cramming", "Spacing beats cramming", "Retrieval beats rereading"],
+        fit: "Useful for anyone studying.",
+      }),
+    ).toEqual({
+      points: ["Spacing beats cramming", "Retrieval beats rereading"],
+      fit: "Useful for anyone studying.",
+    });
+  });
+
+  it("caps the deduplicated points at MAX_TAKEAWAY_POINTS", () => {
+    const result = sanitizeTakeaways({
+      points: ["a", "a", "b", "c", "d", "e", "f", "g"],
+      fit: "Anyone.",
+    });
+    expect(result?.points).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
   it("returns null for a non-object", () => {
     expect(sanitizeTakeaways(null)).toBeNull();
     expect(sanitizeTakeaways("takeaways")).toBeNull();

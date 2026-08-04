@@ -94,10 +94,13 @@ export function sanitizeTakeaways(raw: unknown): ResourceTakeaways | null {
   const candidate = raw as Record<string, unknown>;
 
   if (!Array.isArray(candidate.points)) return null;
-  const points = candidate.points
-    .map((point) => sanitizeText(point))
-    .filter((point): point is string => point !== null)
-    .slice(0, MAX_TAKEAWAY_POINTS);
+  const points = Array.from(
+    new Set(
+      candidate.points
+        .map((point) => sanitizeText(point))
+        .filter((point): point is string => point !== null),
+    ),
+  ).slice(0, MAX_TAKEAWAY_POINTS);
   if (points.length < MIN_TAKEAWAY_POINTS) return null;
 
   const fit = sanitizeText(candidate.fit);
