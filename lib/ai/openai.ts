@@ -69,7 +69,7 @@ const RESOURCE_ITEM_SCHEMA = {
       description: "One sentence on what this resource gives the learner.",
     },
     takeaways: {
-      type: "object",
+      type: ["object", "null"],
       additionalProperties: false,
       required: ["points", "fit"],
       properties: {
@@ -97,6 +97,7 @@ const RESOURCES_GUIDANCE = [
   "Each resource needs a note: one sentence on what it gives the learner for this specific topic.",
   "Each resource also needs takeaways: 4-6 concrete points a reader takes away from the material itself, not a restatement of the blurb.",
   "Takeaways also need a fit sentence: who should spend time on this resource and who should skip it.",
+  "Never invent takeaways. Set takeaways to null unless you are confident about the resource's actual content.",
 ].join(" ");
 
 const RECOMMENDATIONS_SCHEMA = {
